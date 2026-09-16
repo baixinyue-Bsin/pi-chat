@@ -2173,7 +2173,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
           const showProjectActions = group.id === "projects" && hoveredSectionId === group.id;
           return (
             <section key={group.id} style={{ padding: group.id === "pinned" ? "8px 0 0" : "20px 0 0" }}>
-              <div onMouseEnter={() => setHoveredSectionId(group.id)} onMouseLeave={() => setHoveredSectionId(null)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "calc(100% - 24px)", height: 20, margin: "0 12px 8px", color: "var(--text-dim)" }}>
+              <div onMouseEnter={() => setHoveredSectionId(group.id)} onMouseLeave={() => setHoveredSectionId(null)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "calc(100% - 24px)", height: 20, margin: "0 12px 8px", color: "#9b9b9b" }}>
                 <button
                   type="button"
                   onClick={() => setCollapsedProjectGroups((current) => ({ ...current, [group.id]: !current[group.id] }))}
@@ -2237,10 +2237,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                 </div>
               ))}
               {!collapsed && group.id === "projects" && unpinnedUserProjects.length === 0 && pinnedUserProjects.length === 0 && (
-                <div style={{ padding: "4px 12px 0", color: "var(--text-dim)", fontSize: 12, lineHeight: 1.5 }}>
-                  <div>暂无项目</div>
-                  <button type="button" onClick={() => setProjectDialogOpen(true)} style={{ marginTop: 4, padding: 0, border: 0, background: "transparent", color: "var(--accent)", cursor: "pointer", fontSize: 12 }}>点击 + 创建项目</button>
-                </div>
+                <div style={{ height: 36, display: "flex", alignItems: "center", padding: "0 12px", color: "var(--text)", fontSize: 15, fontWeight: 400, lineHeight: "22px" }}>暂无项目</div>
               )}
             </section>
           );
@@ -2818,7 +2815,7 @@ function SessionItem({
                 gap: 12,
                 minWidth: 0,
                 fontSize: 15,
-                fontWeight: 500,
+                fontWeight: 400,
                 lineHeight: "22px",
                 color: "var(--text)",
               }}
