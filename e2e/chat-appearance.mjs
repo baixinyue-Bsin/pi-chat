@@ -92,7 +92,10 @@ export async function checkChatAppearance(page) {
   await checkChatAppearanceReset(page);
   for (const viewport of [{ width: 1280, height: 600 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(viewport);
-    await page.locator(".settings-general").evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    await page.locator(".settings-general").evaluate((el) => {
+      const scrollContainer = el.closest(".settings-section-host") ?? el;
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    });
     assert.equal(await page.locator(".settings-language-options button:last-child").evaluate((el) => {
       const rect = el.getBoundingClientRect();
       return el.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
