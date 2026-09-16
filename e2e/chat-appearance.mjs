@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
 
+async function openSettings(page) {
+  const settings = page.getByRole("button", { name: "Settings", exact: true });
+  if (!await settings.isVisible()) {
+    await page.getByRole("button", { name: /betty/i }).click();
+  }
+  await settings.click();
+}
+
 export async function checkChatAppearanceReset(page) {
   const width = page.getByRole("slider", { name: "Chat content width", exact: true });
   const fontSize = page.getByRole("slider", { name: "Chat font size", exact: true });
@@ -24,7 +32,7 @@ export async function checkChatAppearanceReset(page) {
   await page.reload({ waitUntil: "networkidle" });
   const showSidebar = page.getByRole("button", { name: "Show sidebar", exact: true });
   if (await showSidebar.isVisible()) await showSidebar.click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await openSettings(page);
   assert.equal(await width.inputValue(), "820");
   assert.equal(await fontSize.inputValue(), "14");
   assert.equal(await resetWidth.isDisabled(), true);
@@ -34,7 +42,7 @@ export async function checkChatAppearanceReset(page) {
 export async function checkChatAppearance(page) {
   await page.setViewportSize({ width: 2560, height: 1100 });
   const textarea = page.locator(".chat-input-textarea");
-  const openSettings = () => page.getByRole("button", { name: "Settings", exact: true }).click();
+  const showSettings = () => openSettings(page);
   const closeSettings = () => page.keyboard.press("Escape");
   const width = page.getByRole("slider", { name: "Chat content width", exact: true });
   const fontSize = page.getByRole("slider", { name: "Chat font size", exact: true });
@@ -47,7 +55,7 @@ export async function checkChatAppearance(page) {
     return textarea.evaluate((el) => el.clientHeight);
   };
 
-  await openSettings();
+  await showSettings();
   assert.equal(await width.inputValue(), "820");
   assert.equal(await fontSize.inputValue(), "14");
   await width.press("End");
@@ -55,17 +63,17 @@ export async function checkChatAppearance(page) {
   const draft = "Existing drafts resize when the available width or the reading font changes. ".repeat(6);
   await textarea.fill(draft);
   const wideHeight = await fittedHeight();
-  await openSettings();
+  await showSettings();
   await width.press("Home");
   await closeSettings();
   const narrowHeight = await fittedHeight();
   assert.ok(narrowHeight > wideHeight, "Narrowing must grow the draft without another keystroke");
 
-  await openSettings();
+  await showSettings();
   await fontSize.press("End");
   await closeSettings();
   assert.ok(await fittedHeight() > narrowHeight, "Increasing the font must grow the draft");
-  await openSettings();
+  await showSettings();
   await width.press("End");
   await fontSize.press("Home");
   for (let i = 12; i < 18; i++) await fontSize.press("ArrowRight");
@@ -78,7 +86,7 @@ export async function checkChatAppearance(page) {
   assert.equal(await font(page.locator(".markdown-user-message")), "18px");
   assert.equal(await font(page.locator(".markdown-code-block pre")), "16.5px");
 
-  await openSettings();
+  await showSettings();
   assert.equal(await width.inputValue(), "2000");
   assert.equal(await fontSize.inputValue(), "18");
   await checkChatAppearanceReset(page);
