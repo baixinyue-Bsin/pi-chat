@@ -2396,7 +2396,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
           <button type="button" onClick={() => router.push("/login")} style={{ display: "block", width: "100%", height: 34, padding: "0 9px", border: 0, borderRadius: 9, background: "transparent", color: "var(--text)", cursor: "pointer", font: "inherit", fontSize: 13, textAlign: "left" }}>{t("auth.logOut")}</button>
         </div>}
         <button type="button" onClick={() => setUserMenuOpen((open) => !open)} aria-expanded={userMenuOpen} style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", height: 42, padding: "0 8px", border: 0, borderRadius: 11, background: "transparent", color: "var(--text)", cursor: "pointer", font: "inherit", fontSize: 14, textAlign: "left" }} onMouseEnter={(event) => { event.currentTarget.style.background = "var(--bg-hover)"; }} onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}>
-          <span style={{ display: "grid", width: 28, height: 28, placeItems: "center", border: "1px solid var(--border)", borderRadius: "50%", background: "var(--bg-selected)", color: "var(--text)", fontSize: 12, fontWeight: 600 }}>B</span>betty
+          <span style={{ display: "grid", width: 28, height: 28, placeItems: "center", border: "1px solid var(--border)", borderRadius: "50%", background: "var(--bg-selected)", color: "var(--text)", fontSize: 12, fontWeight: 600 }}>P</span>{t("sidebar.account")}
         </button>
       </div>
     </div>
