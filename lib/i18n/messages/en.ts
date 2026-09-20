@@ -376,6 +376,7 @@ export const enLocale: LocalePlugin = {
     "chat.quoteQuestion": "My question:",
     "chat.quoteForkFailed": "Unable to create a branch from this message.",
     "chat.attachImage": "Attach image",
+    "chat.attachFile": "Attach file",
     "chat.previewImage": "Preview image",
     "chat.filterModels": "Filter models…",
     "chat.noMatchingModels": "No matching models",
