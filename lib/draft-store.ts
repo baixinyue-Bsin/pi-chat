@@ -8,9 +8,16 @@ export interface ChatDraftImage {
   mimeType: string;
 }
 
+export interface ChatDraftFile {
+  name: string;
+  data: string;
+  mimeType: string;
+}
+
 export interface ChatDraft {
   value: string;
   images: ChatDraftImage[];
+  files?: ChatDraftFile[];
 }
 
 const drafts = new Map<string, ChatDraft>();
@@ -19,11 +26,12 @@ function cloneDraft(draft: ChatDraft): ChatDraft {
   return {
     value: draft.value,
     images: draft.images.map((image) => ({ ...image })),
+    ...(draft.files?.length ? { files: draft.files.map((file) => ({ ...file })) } : {}),
   };
 }
 
 function isEmptyDraft(draft: ChatDraft): boolean {
-  return !draft.value && draft.images.length === 0;
+  return !draft.value && draft.images.length === 0 && !(draft.files?.length);
 }
 
 export function getDraft(key: string): ChatDraft | null {
@@ -54,6 +62,8 @@ export function mergeRestoredSubmissionDraft(
   submittedImages: ChatDraftImage[] | undefined,
   currentText: string,
   currentImages: ChatDraftImage[],
+  submittedFiles: ChatDraftFile[] = [],
+  currentFiles: ChatDraftFile[] = [],
 ): ChatDraft {
   const images = [...(submittedImages ?? []), ...currentImages]
     .filter(isBase64ImageWithinLimits)
@@ -63,6 +73,7 @@ export function mergeRestoredSubmissionDraft(
   return {
     value: mergeRestoredSubmissionText(submittedText, currentText),
     images,
+    ...([...submittedFiles, ...currentFiles].length ? { files: [...submittedFiles, ...currentFiles] } : {}),
   };
 }
 
@@ -70,13 +81,16 @@ export function restoreDraftSubmission(
   key: string,
   text: string,
   images?: ChatDraftImage[],
+  files?: ChatDraftFile[],
 ): ChatDraft {
-  const current = getDraft(key) ?? { value: "", images: [] };
+  const current = getDraft(key) ?? { value: "", images: [], files: [] };
   const restored = mergeRestoredSubmissionDraft(
     text,
     images,
     current.value,
     current.images,
+    files,
+    current.files,
   );
   setDraft(key, restored);
   return restored;
@@ -98,7 +112,7 @@ export function rekeyDraft(
   if (!previous) return next;
 
   const merged = next
-    ? mergeRestoredSubmissionDraft(next.value, next.images, previous.value, previous.images)
+    ? mergeRestoredSubmissionDraft(next.value, next.images, previous.value, previous.images, next.files, previous.files)
     : previous;
   setDraft(nextKey, merged);
   return cloneDraft(merged);

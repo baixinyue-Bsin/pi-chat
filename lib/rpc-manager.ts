@@ -5,6 +5,8 @@ import { randomUUID } from "crypto";
 import { existsSync, realpathSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { validateAgentImages } from "./image-attachments";
+import { persistAgentFiles, type Base64FileAttachment } from "./file-attachments";
+import { validateAgentFiles } from "./file-attachment-validation";
 import { invalidateModelsCache } from "./models-cache";
 import { resolveVisibleModels, selectInitialModelScope } from "./model-scope";
 import {
@@ -573,6 +575,8 @@ export class AgentSessionWrapper {
       if (type === "prompt" || type === "steer" || type === "follow_up") {
         const imageError = validateAgentImages(command.images);
         if (imageError) throw new Error(imageError);
+        const fileError = validateAgentFiles(command.files);
+        if (fileError) throw new Error(fileError);
       }
 
       switch (type) {
@@ -589,6 +593,7 @@ export class AgentSessionWrapper {
             this.extensionUiAbortController = new AbortController();
           }
           const promptImages = command.images as Array<{ type: "image"; data: string; mimeType: string }> | undefined;
+          const promptFiles = command.files as Base64FileAttachment[] | undefined;
           const streamingBehavior = command.streamingBehavior as "steer" | "followUp" | undefined;
           let preflightAccepted = false;
           let preflightSettled = false;
@@ -620,7 +625,13 @@ export class AgentSessionWrapper {
           this.pendingPromptCount += 1;
           let prompt: Promise<void>;
           try {
-            prompt = this.inner.prompt(command.message as string, {
+            const filePaths = promptFiles?.length
+              ? await persistAgentFiles(this.cwd, this.sessionId, promptFiles)
+              : [];
+            const message = filePaths.length
+              ? `${command.message as string}${command.message ? "\n\n" : ""}Attached file(s) available in the workspace:\n${filePaths.map((path) => `- ${path}`).join("\n")}`
+              : command.message as string;
+            prompt = this.inner.prompt(message, {
               ...(promptImages?.length ? { images: promptImages } : {}),
               ...(streamingBehavior ? { streamingBehavior } : {}),
               source: "rpc",
