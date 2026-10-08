@@ -114,6 +114,41 @@ const COMPOSITION_END_ENTER_GRACE_MS = 100;
 const TEXT_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const ANCHORED_MENU_GAP = 8;
 
+const USER_FACING_PROJECT_EXTENSIONS = new Set([
+  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "png", "jpg", "jpeg", "webp", "gif",
+  "txt", "md", "mdx", "csv", "rtf", "odt", "ods", "odp",
+]);
+const TECHNICAL_PROJECT_EXTENSIONS = new Set([
+  "ts", "tsx", "js", "jsx", "mjs", "cjs", "json", "yaml", "yml", "env", "lock", "config",
+  "map", "css", "scss", "less", "html", "xml", "py", "go", "rs", "java", "c", "cpp", "h", "hpp",
+]);
+const TECHNICAL_PROJECT_DIRECTORIES = new Set(["node_modules", ".next", "dist", "build", "coverage", "target", "vendor"]);
+
+export type ProjectFileCategory = "uploaded" | "generated" | "other";
+
+export function getProjectFileFormat(filePath: string): string {
+  const extension = filePath.split("/").pop()?.toLowerCase().split(".").pop() ?? "";
+  if (["doc", "docx"].includes(extension)) return "Word";
+  if (["xls", "xlsx", "ods"].includes(extension)) return "Excel";
+  if (["ppt", "pptx", "odp"].includes(extension)) return "PowerPoint";
+  if (extension === "pdf") return "PDF";
+  if (["png", "jpg", "jpeg", "webp", "gif"].includes(extension)) return "Image";
+  if (extension === "txt" || extension === "rtf") return "Text";
+  if (["md", "mdx"].includes(extension)) return "Markdown";
+  if (extension === "csv") return "Table";
+  return extension ? extension.toUpperCase() : "File";
+}
+
+export function getProjectFileCategory(filePath: string): ProjectFileCategory {
+  const segments = filePath.replaceAll("\\", "/").split("/");
+  const name = segments.at(-1) ?? "";
+  const extension = name.toLowerCase().split(".").pop() ?? "";
+  if (segments.some((segment) => segment.startsWith(".") || TECHNICAL_PROJECT_DIRECTORIES.has(segment))) return "other";
+  if (TECHNICAL_PROJECT_EXTENSIONS.has(extension)) return "other";
+  if (USER_FACING_PROJECT_EXTENSIONS.has(extension)) return "uploaded";
+  return "other";
+}
+
 export function getUpwardMenuMaxHeight(menuBottom: number, visibleTop: number, gap = ANCHORED_MENU_GAP): number {
   return Math.max(0, Math.floor(menuBottom - visibleTop - gap));
 }
@@ -597,6 +632,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const [attachmentMenuPosition, setAttachmentMenuPosition] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState("");
+  const [projectFileTab, setProjectFileTab] = useState<"uploaded" | "generated">("uploaded");
+  const [showOtherProjectFiles, setShowOtherProjectFiles] = useState(false);
   const [projectSelection, setProjectSelection] = useState<string[]>([]);
   const [projectFileLoading, setProjectFileLoading] = useState(false);
   const [projectFileNames, setProjectFileNames] = useState<Set<string>>(() => new Set());
@@ -914,6 +951,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     setAttachmentMenuOpen(false);
     setProjectPickerOpen(true);
     setProjectSearch("");
+    setProjectFileTab("uploaded");
+    setShowOtherProjectFiles(false);
     setProjectSelection([]);
     if (!cwd) return;
     setProjectFileLoading(true);
@@ -1799,19 +1838,35 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
           <div role="dialog" aria-label={t("chat.projectFiles")} style={{ width: "min(560px, 100%)", maxHeight: "min(680px, 82vh)", display: "flex", flexDirection: "column", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 16px 48px rgba(0,0,0,0.18)", overflow: "hidden" }} onMouseDown={(event) => event.stopPropagation()}>
             <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ fontWeight: 650, color: "var(--text)" }}>{t("chat.projectFiles")}</div>
-              <div style={{ marginTop: 3, fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{cwd ?? t("chat.noProjectFiles")}</div>
-              <input autoFocus value={projectSearch} onChange={(event) => setProjectSearch(event.target.value)} placeholder={t("chat.projectFilesSearch")} style={{ boxSizing: "border-box", width: "100%", marginTop: 10, padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 7, background: "var(--bg-panel)", color: "var(--text)", outline: "none" }} />
+              <div style={{ marginTop: 3, fontSize: 11, color: "var(--text-dim)" }}>{t("chat.projectFilesDescription")}</div>
+              <div style={{ position: "relative", marginTop: 10 }}>
+                <span aria-hidden="true" style={{ position: "absolute", left: 10, top: 8, color: "var(--text-dim)", fontSize: 14 }}>⌕</span>
+                <input autoFocus value={projectSearch} onChange={(event) => setProjectSearch(event.target.value)} placeholder={t("chat.projectFilesSearch")} style={{ boxSizing: "border-box", width: "100%", padding: "8px 10px 8px 28px", border: "1px solid var(--border)", borderRadius: 7, background: "var(--bg-panel)", color: "var(--text)", outline: "none" }} />
+              </div>
+              <div role="tablist" aria-label={t("chat.projectFileCategories")} style={{ display: "flex", gap: 4, marginTop: 10 }}>
+                {(["uploaded", "generated"] as const).map((tab) => (
+                  <button key={tab} type="button" role="tab" aria-selected={projectFileTab === tab} onClick={() => setProjectFileTab(tab)} style={{ padding: "6px 10px", border: 0, borderRadius: 7, background: projectFileTab === tab ? "var(--bg-selected)" : "transparent", color: projectFileTab === tab ? "var(--text)" : "var(--text-muted)", cursor: "pointer", fontSize: 12, fontWeight: projectFileTab === tab ? 600 : 500 }}>{t(tab === "uploaded" ? "chat.uploadedFiles" : "chat.generatedFiles")}</button>
+                ))}
+              </div>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
               {projectFileLoading ? <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 12 }}>{t("chat.loadingFiles")}</div> : (() => {
                 const query = projectSearch.trim().toLowerCase();
                 const projectEntries = fileIndex && fileIndex.cwd === cwd ? fileIndex.entries : [];
-                const entries = projectEntries.filter((entry) => !query || entry.path.toLowerCase().includes(query));
-                return entries.length ? entries.map((entry) => {
+                const categorizedEntries = projectEntries.filter((entry) => getProjectFileCategory(entry.path) === (projectFileTab === "uploaded" ? "uploaded" : "generated"));
+                const entries = categorizedEntries.filter((entry) => !query || entry.path.toLowerCase().includes(query));
+                const otherEntries = projectEntries.filter((entry) => getProjectFileCategory(entry.path) === "other" && (!query || entry.path.toLowerCase().includes(query)));
+                const visibleEntries = showOtherProjectFiles ? [...entries, ...otherEntries] : entries;
+                return visibleEntries.length ? visibleEntries.map((entry) => {
                   const checked = projectSelection.includes(entry.path);
-                  return <label key={entry.path} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 7, cursor: "pointer", background: checked ? "var(--bg-selected)" : "transparent", color: "var(--text)", fontSize: 12 }}><input type="checkbox" checked={checked} onChange={() => setProjectSelection((current) => checked ? current.filter((item) => item !== entry.path) : [...current, entry.path])} /><span style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, fontFamily: "var(--font-mono)" }}>{getFileIcon(entry.path.split("/").pop() ?? entry.path, 14)}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.path}</span></span></label>;
-                }) : <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 12 }}>{t("chat.noProjectFiles")}</div>;
+                  const fileName = entry.path.split("/").pop() ?? entry.path;
+                  const formatKey = getProjectFileFormat(fileName);
+                  return <label key={entry.path} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 7, cursor: "pointer", background: checked ? "var(--bg-selected)" : "transparent", color: "var(--text)", fontSize: 12 }}><input type="checkbox" checked={checked} onChange={() => setProjectSelection((current) => checked ? current.filter((item) => item !== entry.path) : [...current, entry.path])} /><span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>{getFileIcon(fileName, 16)}</span><span style={{ minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileName}>{fileName}</span><span style={{ flexShrink: 0, color: "var(--text-dim)", fontSize: 11 }}>{t(`chat.fileFormat${formatKey}`)}</span></label>;
+                }) : <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 12 }}>{t(projectFileTab === "uploaded" ? "chat.noUploadedFiles" : "chat.noGeneratedFiles")}</div>;
               })()}
+              {!showOtherProjectFiles && projectFileTab !== "generated" && (
+                <button type="button" onClick={() => setShowOtherProjectFiles(true)} style={{ display: "block", width: "100%", marginTop: 8, padding: "8px 10px", border: 0, borderTop: "1px solid var(--border)", background: "transparent", color: "var(--text-dim)", textAlign: "left", cursor: "pointer", fontSize: 11 }}>{t("chat.viewOtherProjectFiles")}</button>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", borderTop: "1px solid var(--border)" }}>
               <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("chat.selectedFiles", { count: projectSelection.length })}</span>
