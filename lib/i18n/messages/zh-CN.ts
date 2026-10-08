@@ -359,7 +359,7 @@ export const zhCNLocale: LocalePlugin = {
     "chat.indexTruncated": " · 索引不完整",
     "chat.steerPlaceholder": "立即引导 / 排队后续消息...",
     "chat.agentPlaceholder": "Agent 运行中…",
-    "chat.messagePlaceholder": "告诉 Pi Chat 你想做什么",
+    "chat.messagePlaceholder": "使用 Pi Chat",
     "chat.steer": "引导",
     "chat.followUp": "后续消息",
     "chat.steerHint": "中断当前运行并立即注入此消息",

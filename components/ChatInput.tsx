@@ -594,6 +594,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const [thinkingDropdownOpen, setThinkingDropdownOpen] = useState(false);
   const [controlsMenuOpen, setControlsMenuOpen] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [attachmentMenuPosition, setAttachmentMenuPosition] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState("");
   const [projectSelection, setProjectSelection] = useState<string[]>([]);
@@ -637,6 +638,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const thinkingDropdownRef = useRef<HTMLDivElement>(null);
   const controlsMenuRef = useRef<HTMLDivElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
+  const attachmentButtonRef = useRef<HTMLButtonElement>(null);
   const historyMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
@@ -1492,6 +1494,12 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
         return;
       }
 
+      if (e.key === "Escape" && attachmentMenuOpen && !isComposing) {
+        e.preventDefault();
+        setAttachmentMenuOpen(false);
+        return;
+      }
+
       // Esc stops the agent when no slash/@/history menu or IME composition is active.
       if (e.key === "Escape" && !isComposing && isStreaming && onAbort) {
         e.preventDefault();
@@ -1508,7 +1516,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
         }
       }
     },
-    [isMobile, isStreaming, onSteer, onFollowUp, onAbort, slashMenuOpen, slashQuery, displayedSlashCommands, slashActiveIndex, applySlashCommand, sendQueued, handleSend, getNextSlashIndex, atMenuOpen, atQuery, atMatches, atActiveIndex, applyAtCompletion, historyMenuOpen, inputHistory, historyActiveIndex, applyHistoryInput, value]
+    [isMobile, isStreaming, onSteer, onFollowUp, onAbort, slashMenuOpen, slashQuery, displayedSlashCommands, slashActiveIndex, applySlashCommand, sendQueued, handleSend, getNextSlashIndex, atMenuOpen, atQuery, atMatches, atActiveIndex, applyAtCompletion, historyMenuOpen, inputHistory, historyActiveIndex, applyHistoryInput, value, attachmentMenuOpen]
   );
 
   const handleInput = useCallback(() => {
@@ -1691,6 +1699,51 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!attachmentMenuOpen) {
+      setAttachmentMenuPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const button = attachmentButtonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const menuWidth = Math.min(350, Math.max(0, window.innerWidth - 32));
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8));
+      const top = rect.bottom + ANCHORED_MENU_GAP;
+      setAttachmentMenuPosition({
+        top,
+        left,
+        maxHeight: Math.max(80, window.innerHeight - top - 16),
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    window.visualViewport?.addEventListener("resize", updatePosition);
+    window.visualViewport?.addEventListener("scroll", updatePosition);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      window.visualViewport?.removeEventListener("resize", updatePosition);
+      window.visualViewport?.removeEventListener("scroll", updatePosition);
+    };
+  }, [attachmentMenuOpen]);
+
+  useEffect(() => {
+    if (!attachmentMenuOpen) return;
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setAttachmentMenuOpen(false);
+      attachmentButtonRef.current?.focus();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [attachmentMenuOpen]);
 
   useEffect(() => {
     if (!isMobile) setControlsMenuOpen(false);
@@ -2450,14 +2503,17 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
         }}>
 
           {/* LEFT: attach + model selector (idle) or steer/followup toggle (streaming) */}
-          <div style={{ flex: isMobile ? "1 1 auto" : "0 0 auto", minWidth: 0, display: "flex", alignItems: "center", gap: 2 }}>
+          <div style={{ flex: isMobile ? "1 1 auto" : "0 0 auto", minWidth: 0, display: "flex", alignItems: "center", gap: 2, position: "relative" }}>
             <button
+              ref={attachmentButtonRef}
               onClick={() => setAttachmentMenuOpen((open) => !open)}
-             title={t("chat.addAttachment")}
+              aria-expanded={attachmentMenuOpen}
+              aria-haspopup="menu"
+              title={t("chat.addAttachment")}
               style={{
                 flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                 width: 32, height: 32, padding: 0,
-                background: "none", border: "none",
+                background: attachmentMenuOpen ? "var(--bg-hover)" : "none", border: "none",
                 borderRadius: 9,
                 color: attachedImages.length ? "var(--accent)" : "var(--text-muted)",
                 cursor: "pointer",
@@ -2469,15 +2525,16 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 e.currentTarget.style.color = attachedImages.length ? "var(--accent)" : "var(--text)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "none";
+                e.currentTarget.style.background = attachmentMenuOpen ? "var(--bg-hover)" : "none";
                 e.currentTarget.style.color = attachedImages.length ? "var(--accent)" : "var(--text-muted)";
               }}
             >
               <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1 }}>+</span>
             </button>
-            {attachmentMenuOpen && <div ref={attachmentMenuRef} style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, zIndex: 100, width: 260, padding: 5, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 9, boxShadow: "0 -6px 20px rgba(0,0,0,0.12)" }}>
-              <button type="button" onClick={() => { setAttachmentMenuOpen(false); attachmentInputRef.current?.click(); }} style={{ display: "block", width: "100%", padding: "9px 10px", border: 0, borderRadius: 7, background: "none", color: "var(--text)", textAlign: "left", cursor: "pointer" }}><div style={{ fontSize: 13 }}>{t("chat.chooseComputerFile")}</div><div style={{ marginTop: 2, fontSize: 11, color: "var(--text-dim)" }}>{t("chat.chooseComputerFileDescription")}</div></button>
-              <button type="button" onClick={openProjectPicker} disabled={!cwd} style={{ display: "block", width: "100%", padding: "9px 10px", border: 0, borderRadius: 7, background: "none", color: cwd ? "var(--text)" : "var(--text-dim)", textAlign: "left", cursor: cwd ? "pointer" : "not-allowed" }}><div style={{ fontSize: 13 }}>{t("chat.chooseProjectFile")}</div><div style={{ marginTop: 2, fontSize: 11, color: "var(--text-dim)" }}>{t("chat.chooseProjectFileDescription")}</div></button>
+            {attachmentMenuOpen && attachmentMenuPosition && <div ref={attachmentMenuRef} role="menu" style={{ position: "fixed", top: attachmentMenuPosition.top, left: attachmentMenuPosition.left, zIndex: 100, width: "min(350px, calc(100vw - 32px))", maxHeight: attachmentMenuPosition.maxHeight, padding: 5, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 9, boxShadow: "0 8px 24px rgba(0,0,0,0.14)", overflowY: "auto", overflowX: "hidden", animation: "attachment-menu-in 0.15s ease both" }}>
+              <div style={{ padding: "7px 10px 5px", color: "var(--text-muted)", fontSize: 12, fontWeight: 600 }}>{t("chat.addAttachment")}</div>
+              <button type="button" role="menuitem" onClick={() => { setAttachmentMenuOpen(false); attachmentInputRef.current?.click(); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 64, padding: "9px 10px", border: 0, borderRadius: 7, background: "none", color: "var(--text)", textAlign: "left", cursor: "pointer" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg><span><div style={{ fontSize: 13 }}>{t("chat.chooseComputerFile")}</div><div style={{ marginTop: 2, fontSize: 11, color: "var(--text-dim)" }}>{t("chat.chooseComputerFileDescription")}</div></span></button>
+              <button type="button" role="menuitem" onClick={openProjectPicker} disabled={!cwd} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 64, padding: "9px 10px", border: 0, borderRadius: 7, background: "none", color: cwd ? "var(--text)" : "var(--text-dim)", textAlign: "left", cursor: cwd ? "pointer" : "not-allowed" }}><FolderIcon size={16} /><span><div style={{ fontSize: 13 }}>{t("chat.chooseProjectFile")}</div><div style={{ marginTop: 2, fontSize: 11, color: "var(--text-dim)" }}>{t("chat.chooseProjectFileDescription")}</div></span></button>
             </div>}
             <button
               type="button"
