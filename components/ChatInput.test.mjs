@@ -11,7 +11,7 @@ const jiti = createJiti(import.meta.url, {
 });
 const React = await jiti.import("react");
 const { renderToStaticMarkup } = await jiti.import("react-dom/server");
-const { ChatInput, ModelErrorBanner, ModelScopeWarningBanner, canClearBuiltinCommandInput, canRestoreUserMessage, canRunBuiltinSlashCommandWhileStreaming, compressImageFile, cycleListIndex, filterModelOptions, getUpwardMenuMaxHeight, getUserMessageText, getUserMessageDraftImages, isExactSlashCommand, modelSupportsImageInput, replaceLinksWithMarkdown, shouldCompressImageFile } = await jiti.import("./ChatInput.tsx");
+const { ChatInput, ModelErrorBanner, ModelScopeWarningBanner, canClearBuiltinCommandInput, canRestoreUserMessage, canRunBuiltinSlashCommandWhileStreaming, compressImageFile, cycleListIndex, filterModelOptions, getProjectFileCategory, getProjectFileFormat, getUpwardMenuMaxHeight, getUserMessageText, getUserMessageDraftImages, isExactSlashCommand, modelSupportsImageInput, replaceLinksWithMarkdown, shouldCompressImageFile } = await jiti.import("./ChatInput.tsx");
 const { ModelSelector } = await jiti.import("./ModelSelector.tsx");
 const { clearDraft, getDraft, mergeRestoredSubmissionDraft, mergeRestoredSubmissionText, rekeyDraft, setDraft } = await jiti.import("@/lib/draft-store.ts");
 const { I18nProvider } = await jiti.import("@/hooks/useI18n");
@@ -408,6 +408,17 @@ test("keeps the attachment menu anchored below the plus button and simplifies dr
   assert.equal(dragOverlay.includes("drop-ripple"), false);
   assert.equal(dragOverlay.includes("drop-shadow"), false);
   assert.equal(dragOverlay.includes("<svg"), false);
+});
+
+test("keeps project file selection focused on user-facing files", () => {
+  assert.equal(getProjectFileCategory("docs/report.pdf"), "uploaded");
+  assert.equal(getProjectFileCategory("images/home.png"), "uploaded");
+  assert.equal(getProjectFileCategory("src/app.ts"), "other");
+  assert.equal(getProjectFileCategory(".env"), "other");
+  assert.equal(getProjectFileCategory(".next/static/app.js"), "other");
+  assert.equal(getProjectFileFormat("report.docx"), "Word");
+  assert.equal(getProjectFileFormat("table.xlsx"), "Excel");
+  assert.equal(getProjectFileFormat("image.png"), "Image");
 });
 
 test("compresses large images while preserving small images and GIFs", async () => {
