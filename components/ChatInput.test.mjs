@@ -419,6 +419,10 @@ test("keeps project file selection focused on user-facing files", () => {
   assert.equal(getProjectFileFormat("report.docx"), "Word");
   assert.equal(getProjectFileFormat("table.xlsx"), "Excel");
   assert.equal(getProjectFileFormat("image.png"), "Image");
+  const source = readFileSync(new URL("./ChatInput.tsx", import.meta.url), "utf8");
+  assert.match(source, /import \{ ImagePreview \} from "\.\/ImagePreview"/);
+  assert.match(source, /type=read/);
+  assert.doesNotMatch(source, /projectEntries\.map\(.*size|modified|created/i);
 });
 
 test("compresses large images while preserving small images and GIFs", async () => {

@@ -25,6 +25,7 @@ import {
   type AtQueryMatch, type FileIndexEntry,
 } from "@/lib/file-fuzzy";
 import { FolderIcon, getFileIcon } from "./FileIcons";
+import { ImagePreview } from "./ImagePreview";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useI18n } from "@/hooks/useI18n";
 import { useChatAppearance } from "@/hooks/useChatAppearance";
@@ -1861,7 +1862,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   const checked = projectSelection.includes(entry.path);
                   const fileName = entry.path.split("/").pop() ?? entry.path;
                   const formatKey = getProjectFileFormat(fileName);
-                  return <label key={entry.path} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 7, cursor: "pointer", background: checked ? "var(--bg-selected)" : "transparent", color: "var(--text)", fontSize: 12 }}><input type="checkbox" checked={checked} onChange={() => setProjectSelection((current) => checked ? current.filter((item) => item !== entry.path) : [...current, entry.path])} /><span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>{getFileIcon(fileName, 16)}</span><span style={{ minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileName}>{fileName}</span><span style={{ flexShrink: 0, color: "var(--text-dim)", fontSize: 11 }}>{t(`chat.fileFormat${formatKey}`)}</span></label>;
+                  const isImage = ["png", "jpg", "jpeg", "webp", "gif"].some((extension) => fileName.toLowerCase().endsWith(`.${extension}`));
+                  const imageSrc = isImage ? `/api/files/${encodeFilePathForApi(`${cwd}/${entry.path}`)}?type=read` : "";
+                  return <label key={entry.path} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 7, cursor: "pointer", background: checked ? "var(--bg-selected)" : "transparent", color: "var(--text)", fontSize: 12 }}><input type="checkbox" checked={checked} onChange={() => setProjectSelection((current) => checked ? current.filter((item) => item !== entry.path) : [...current, entry.path])} />{isImage ? <ImagePreview src={imageSrc} alt={fileName} style={{ width: 28, height: 28, borderRadius: 5, objectFit: "cover" }}><span aria-hidden="true" style={{ display: "block", width: "100%", height: "100%", backgroundImage: `url(${imageSrc})`, backgroundPosition: "center", backgroundSize: "cover" }} /></ImagePreview> : <span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>{getFileIcon(fileName, 16)}</span>}<span style={{ minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileName}>{fileName}</span><span style={{ flexShrink: 0, color: "var(--text-dim)", fontSize: 11 }}>{t(`chat.fileFormat${formatKey}`)}</span></label>;
                 }) : <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 12 }}>{t(projectFileTab === "uploaded" ? "chat.noUploadedFiles" : "chat.noGeneratedFiles")}</div>;
               })()}
               {!showOtherProjectFiles && projectFileTab !== "generated" && (
