@@ -388,6 +388,28 @@ test("file mention menu remeasures when its layout container shifts the anchor",
   assert.match(block, /anchorObserver\?\.observe\(layoutContainer\)/);
 });
 
+test("keeps the attachment menu anchored below the plus button and simplifies drag feedback", () => {
+  const chatInput = readFileSync(new URL("./ChatInput.tsx", import.meta.url), "utf8");
+  const chatWindow = readFileSync(new URL("./ChatWindow.tsx", import.meta.url), "utf8");
+  const zhCN = readFileSync(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
+  const zhTW = readFileSync(new URL("../lib/i18n/messages/zh-TW.ts", import.meta.url), "utf8");
+  const en = readFileSync(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
+
+  assert.match(zhCN, /"chat\.messagePlaceholder": "使用 Pi Chat"/);
+  assert.match(zhTW, /"chat\.messagePlaceholder": "使用 Pi Chat"/);
+  assert.match(en, /"chat\.messagePlaceholder": "Use Pi Chat"/);
+  assert.match(chatInput, /position: "fixed"[\s\S]*top: attachmentMenuPosition\.top/);
+  assert.match(chatInput, /const top = rect\.bottom \+ ANCHORED_MENU_GAP/);
+  assert.match(chatInput, /window\.addEventListener\("scroll", updatePosition, true\)/);
+  assert.match(chatInput, /event\.key !== "Escape"[\s\S]*setAttachmentMenuOpen\(false\)/);
+  const attachmentBlock = chatInput.slice(chatInput.indexOf("role=\"menu\""), chatInput.indexOf("role=\"menu\"") + 2500);
+  assert.equal(attachmentBlock.includes('bottom: "calc(100% + 6px)"'), false);
+  const dragOverlay = chatWindow.slice(chatWindow.indexOf("{isDragOver && ("), chatWindow.indexOf("{isDragOver && (") + 1800);
+  assert.equal(dragOverlay.includes("drop-ripple"), false);
+  assert.equal(dragOverlay.includes("drop-shadow"), false);
+  assert.equal(dragOverlay.includes("<svg"), false);
+});
+
 test("compresses large images while preserving small images and GIFs", async () => {
   assert.equal(shouldCompressImageFile({ size: 1024 * 1024, type: "image/png" }), false);
   assert.equal(shouldCompressImageFile({ size: 1024 * 1024 + 1, type: "image/png" }), true);

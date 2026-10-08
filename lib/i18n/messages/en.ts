@@ -359,7 +359,7 @@ export const enLocale: LocalePlugin = {
     "chat.indexTruncated": " · index truncated",
     "chat.steerPlaceholder": "Steer now / queue follow-up...",
     "chat.agentPlaceholder": "Agent is running…",
-    "chat.messagePlaceholder": "Tell Pi Chat what you want to do",
+    "chat.messagePlaceholder": "Use Pi Chat",
     "chat.steer": "Steer",
     "chat.followUp": "Follow-up",
     "chat.steerHint": "Interrupt the current run and inject this message now",

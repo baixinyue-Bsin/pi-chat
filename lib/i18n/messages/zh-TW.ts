@@ -359,7 +359,7 @@ export const zhTWLocale: LocalePlugin = {
     "chat.indexTruncated": " · 索引已截斷",
     "chat.steerPlaceholder": "立即引導 / 將後續訊息排入佇列...",
     "chat.agentPlaceholder": "Agent 執行中…",
-    "chat.messagePlaceholder": "告訴 Pi Chat 你想做什麼",
+    "chat.messagePlaceholder": "使用 Pi Chat",
     "chat.steer": "引導",
     "chat.followUp": "後續訊息",
     "chat.steerHint": "中斷目前的執行並立即注入此訊息",
