@@ -645,7 +645,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
   useEffect(() => () => { onContextUsageChange?.(null); }, [onContextUsageChange]);
 
   const onDrop = useCallback((files: File[]) => {
-    chatInputRef?.current?.addImages(files);
+    chatInputRef?.current?.addAttachments(files);
   }, [chatInputRef]);
 
   const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } = useDragDrop(onDrop);
@@ -888,6 +888,9 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
               <line x1="87.5" y1="66.5" x2="85.4" y2="68.6"/>
             </g>
           </svg>
+          <div className="absolute mt-44 rounded-full border border-[rgba(37,99,235,0.35)] bg-[var(--bg)] px-4 py-2 text-sm text-[var(--text)] shadow-sm">
+            {t("chat.dropFilesHere")}
+          </div>
         </div>
       )}
 

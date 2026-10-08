@@ -30,6 +30,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useChatAppearance } from "@/hooks/useChatAppearance";
 import type { ToolPreset } from "@/lib/tool-presets";
 import { ModelSelector, type ModelSelectorOption } from "./ModelSelector";
+import { encodeFilePathForApi } from "@/lib/file-paths";
 
 export { filterModelOptions } from "./ModelSelector";
 
@@ -96,6 +97,7 @@ export interface ChatInputHandle {
   replaceMessage: (message: UserMessage) => void;
   prependText: (text: string) => void;
   addImages: (files: File[]) => void;
+  addAttachments: (files: File[]) => void;
   rekeyDraft: (previousKey: string, nextKey: string) => void;
   restoreSubmission: (text: string, images?: ChatDraftImage[], files?: ChatDraftFile[], targetDraftKey?: string) => void;
 }
@@ -591,6 +593,13 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const [toolDropdownOpen, setToolDropdownOpen] = useState(false);
   const [thinkingDropdownOpen, setThinkingDropdownOpen] = useState(false);
   const [controlsMenuOpen, setControlsMenuOpen] = useState(false);
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectSelection, setProjectSelection] = useState<string[]>([]);
+  const [projectFileLoading, setProjectFileLoading] = useState(false);
+  const [projectFileNames, setProjectFileNames] = useState<Set<string>>(() => new Set());
+  const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>(() => (
     draftKey ? draftImagesToAttachedImages(getDraft(draftKey)?.images) : []
   ));
@@ -627,6 +636,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const toolDropdownRef = useRef<HTMLDivElement>(null);
   const thinkingDropdownRef = useRef<HTMLDivElement>(null);
   const controlsMenuRef = useRef<HTMLDivElement>(null);
+  const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const historyMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
@@ -839,6 +849,12 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     addImages(files: File[]) {
       processImageFiles(files);
     },
+    addAttachments(files: File[]) {
+      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+      const otherFiles = files.filter((file) => !file.type.startsWith("image/"));
+      if (imageFiles.length) processImageFiles(imageFiles);
+      if (otherFiles.length) processFiles(otherFiles);
+    },
   }));
 
   const processImageFiles = useCallback(async (files: File[]) => {
@@ -877,13 +893,54 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
       .filter((file) => file.size <= MAX_ATTACHED_FILE_BYTES)
       .slice(0, Math.max(0, MAX_ATTACHED_FILES - attachedFilesRef.current.length));
     if (!candidates.length) return;
-    const added = await Promise.all(candidates.map(readFile));
+    const results = await Promise.allSettled(candidates.map(readFile));
+    const added = results.flatMap((result, index) => {
+      if (result.status === "fulfilled") return [result.value];
+      setAttachmentNotice(t("chat.fileReadFailed", { name: candidates[index].name }));
+      return [];
+    });
     setAttachedFiles((current) => {
-      const next = [...current, ...added].slice(0, MAX_ATTACHED_FILES);
+      const unique = added.filter((file) => !current.some((item) => item.name === file.name && item.mimeType === file.mimeType));
+      if (unique.length !== added.length) setAttachmentNotice(t("chat.duplicateFile"));
+      const next = [...current, ...unique].slice(0, MAX_ATTACHED_FILES);
       attachedFilesRef.current = next;
       return next;
     });
-  }, [compact]);
+  }, [compact, t]);
+
+  const openProjectPicker = useCallback(() => {
+    setAttachmentMenuOpen(false);
+    setProjectPickerOpen(true);
+    setProjectSearch("");
+    setProjectSelection([]);
+    if (!cwd) return;
+    setProjectFileLoading(true);
+    fetch(`/api/file-index?cwd=${encodeURIComponent(cwd)}`)
+      .then((response) => response.ok ? response.json() as Promise<{ files?: string[] }> : Promise.reject(new Error("project files unavailable")))
+      .then((data) => setFileIndex({ cwd, entries: buildEntriesFromFiles(data.files ?? []).filter((entry) => !entry.isDir), truncated: false }))
+      .catch(() => setFileIndex({ cwd, entries: [], truncated: false }))
+      .finally(() => setProjectFileLoading(false));
+  }, [cwd]);
+
+  const addProjectFiles = useCallback(async () => {
+    if (!cwd || projectSelection.length === 0) return;
+    setProjectFileLoading(true);
+    try {
+      const files = await Promise.all(projectSelection.map(async (relativePath) => {
+        const response = await fetch(`/api/files/${encodeFilePathForApi(`${cwd}/${relativePath}`)}?type=download`);
+        if (!response.ok) throw new Error(relativePath);
+        const blob = await response.blob();
+        return new File([blob], relativePath.split("/").pop() ?? relativePath, { type: blob.type || "application/octet-stream" });
+      }));
+      await processFiles(files);
+      setProjectFileNames((current) => new Set([...current, ...files.map((file) => file.name)]));
+      setProjectPickerOpen(false);
+    } catch (error) {
+      setAttachmentNotice(t("chat.fileReadFailed", { name: error instanceof Error ? error.message : "file" }));
+    } finally {
+      setProjectFileLoading(false);
+    }
+  }, [cwd, processFiles, projectSelection, t]);
 
   const removeFile = useCallback((index: number) => {
     setAttachedFiles((current) => {
@@ -921,9 +978,10 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     setAtQuery(null);
     setHistoryMenuOpen(false);
     if (draftKey) clearDraft(draftKey);
-    if (draftKeyRef.current && draftKeyRef.current !== draftKey) clearDraft(draftKeyRef.current);
+      if (draftKeyRef.current && draftKeyRef.current !== draftKey) clearDraft(draftKeyRef.current);
     clearImages();
     clearFiles();
+    setProjectFileNames(new Set());
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -1623,6 +1681,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
       if (controlsMenuRef.current && !controlsMenuRef.current.contains(e.target as Node)) {
         setControlsMenuOpen(false);
       }
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(e.target as Node)) {
+        setAttachmentMenuOpen(false);
+      }
       if (historyMenuRef.current && !historyMenuRef.current.contains(e.target as Node) && !textareaRef.current?.contains(e.target as Node)) {
         setHistoryMenuOpen(false);
       }
@@ -1670,12 +1731,42 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
         ref={attachmentInputRef}
         type="file"
         multiple
+        accept="image/*,.pdf,.doc,.docx,.txt,.md,.mdx,.json,.yaml,.yml,.csv,.ts,.tsx,.js,.jsx,.py,.go,.rs,.java,.css,.html,.xml"
         style={{ display: "none" }}
         onChange={(e) => {
           processFiles(Array.from(e.target.files ?? []));
           e.target.value = "";
         }}
       />}
+      {!compact && attachmentNotice && (
+        <div role="status" style={{ marginBottom: 6, fontSize: 11, color: "var(--text-muted)" }}>{attachmentNotice}</div>
+      )}
+      {!compact && projectPickerOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 140, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "rgba(15,23,42,0.18)" }} onMouseDown={() => setProjectPickerOpen(false)}>
+          <div role="dialog" aria-label={t("chat.projectFiles")} style={{ width: "min(560px, 100%)", maxHeight: "min(680px, 82vh)", display: "flex", flexDirection: "column", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 16px 48px rgba(0,0,0,0.18)", overflow: "hidden" }} onMouseDown={(event) => event.stopPropagation()}>
+            <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ fontWeight: 650, color: "var(--text)" }}>{t("chat.projectFiles")}</div>
+              <div style={{ marginTop: 3, fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{cwd ?? t("chat.noProjectFiles")}</div>
+              <input autoFocus value={projectSearch} onChange={(event) => setProjectSearch(event.target.value)} placeholder={t("chat.projectFilesSearch")} style={{ boxSizing: "border-box", width: "100%", marginTop: 10, padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 7, background: "var(--bg-panel)", color: "var(--text)", outline: "none" }} />
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+              {projectFileLoading ? <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 12 }}>{t("chat.loadingFiles")}</div> : (() => {
+                const query = projectSearch.trim().toLowerCase();
+                const projectEntries = fileIndex && fileIndex.cwd === cwd ? fileIndex.entries : [];
+                const entries = projectEntries.filter((entry) => !query || entry.path.toLowerCase().includes(query));
+                return entries.length ? entries.map((entry) => {
+                  const checked = projectSelection.includes(entry.path);
+                  return <label key={entry.path} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 7, cursor: "pointer", background: checked ? "var(--bg-selected)" : "transparent", color: "var(--text)", fontSize: 12 }}><input type="checkbox" checked={checked} onChange={() => setProjectSelection((current) => checked ? current.filter((item) => item !== entry.path) : [...current, entry.path])} /><span style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, fontFamily: "var(--font-mono)" }}>{getFileIcon(entry.path.split("/").pop() ?? entry.path, 14)}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.path}</span></span></label>;
+                }) : <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 12 }}>{t("chat.noProjectFiles")}</div>;
+              })()}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", borderTop: "1px solid var(--border)" }}>
+              <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("chat.selectedFiles", { count: projectSelection.length })}</span>
+              <span style={{ display: "flex", gap: 8 }}><button type="button" onClick={() => setProjectPickerOpen(false)} style={{ padding: "7px 12px", border: "1px solid var(--border)", borderRadius: 7, background: "none", color: "var(--text-muted)", cursor: "pointer" }}>{t("common.cancel")}</button><button type="button" disabled={!projectSelection.length || projectFileLoading} onClick={() => void addProjectFiles()} style={{ padding: "7px 12px", border: 0, borderRadius: 7, background: "var(--accent)", color: "var(--accent-contrast)", cursor: projectSelection.length ? "pointer" : "not-allowed", opacity: projectSelection.length ? 1 : 0.5 }}>{t("chat.addFiles")}</button></span>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ maxWidth: "var(--chat-content-max-width, 820px)", margin: "0 auto" }}>
         <ModelErrorBanner error={modelError} />
         <ModelScopeWarningBanner warnings={modelScopeWarnings} />
@@ -1840,7 +1931,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             {attachedFiles.map((file, i) => (
               <div key={`${file.name}-${i}`} style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, maxWidth: 220, padding: "7px 24px 7px 8px", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text-muted)", fontSize: 12 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                <span title={file.name} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
+                <span title={file.name} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}{projectFileNames.has(file.name) && <span style={{ display: "block", color: "var(--text-dim)", fontSize: 10 }}>{t("chat.projectFiles")}</span>}</span>
                 <button type="button" aria-label={`Remove ${file.name}`} onClick={() => removeFile(i)} style={{ position: "absolute", top: 3, right: 3, width: 16, height: 16, borderRadius: "50%", background: "var(--bg-panel)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "var(--text-muted)" }}>×</button>
               </div>
             ))}
@@ -2361,8 +2452,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
           {/* LEFT: attach + model selector (idle) or steer/followup toggle (streaming) */}
           <div style={{ flex: isMobile ? "1 1 auto" : "0 0 auto", minWidth: 0, display: "flex", alignItems: "center", gap: 2 }}>
             <button
-              onClick={() => fileInputRef.current?.click()}
-             title={t("chat.attachImage")}
+              onClick={() => setAttachmentMenuOpen((open) => !open)}
+             title={t("chat.addAttachment")}
               style={{
                 flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                 width: 32, height: 32, padding: 0,
@@ -2382,18 +2473,18 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 e.currentTarget.style.color = attachedImages.length ? "var(--accent)" : "var(--text-muted)";
               }}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
+              <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1 }}>+</span>
             </button>
+            {attachmentMenuOpen && <div ref={attachmentMenuRef} style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, zIndex: 100, width: 260, padding: 5, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 9, boxShadow: "0 -6px 20px rgba(0,0,0,0.12)" }}>
+              <button type="button" onClick={() => { setAttachmentMenuOpen(false); attachmentInputRef.current?.click(); }} style={{ display: "block", width: "100%", padding: "9px 10px", border: 0, borderRadius: 7, background: "none", color: "var(--text)", textAlign: "left", cursor: "pointer" }}><div style={{ fontSize: 13 }}>{t("chat.chooseComputerFile")}</div><div style={{ marginTop: 2, fontSize: 11, color: "var(--text-dim)" }}>{t("chat.chooseComputerFileDescription")}</div></button>
+              <button type="button" onClick={openProjectPicker} disabled={!cwd} style={{ display: "block", width: "100%", padding: "9px 10px", border: 0, borderRadius: 7, background: "none", color: cwd ? "var(--text)" : "var(--text-dim)", textAlign: "left", cursor: cwd ? "pointer" : "not-allowed" }}><div style={{ fontSize: 13 }}>{t("chat.chooseProjectFile")}</div><div style={{ marginTop: 2, fontSize: 11, color: "var(--text-dim)" }}>{t("chat.chooseProjectFileDescription")}</div></button>
+            </div>}
             <button
               type="button"
               onClick={() => attachmentInputRef.current?.click()}
               title={t("chat.attachFile")}
               aria-label={t("chat.attachFile")}
-              style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", borderRadius: 9, color: attachedFiles.length ? "var(--accent)" : "var(--text-muted)", cursor: "pointer", opacity: 1, transition: "background 0.12s, color 0.12s" }}
+              style={{ display: "none", flexShrink: 0, alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", borderRadius: 9, color: attachedFiles.length ? "var(--accent)" : "var(--text-muted)", cursor: "pointer", opacity: 1, transition: "background 0.12s, color 0.12s" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = attachedFiles.length ? "var(--accent)" : "var(--text)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = attachedFiles.length ? "var(--accent)" : "var(--text-muted)"; }}
             >
