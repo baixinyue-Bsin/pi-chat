@@ -80,6 +80,9 @@ function SkillDetail({
   updateError,
   onCheckUpdate,
   onUpdate,
+  onRemove,
+  removing,
+  removeError,
 }: {
   skill: Skill;
   cwd: string;
@@ -92,6 +95,9 @@ function SkillDetail({
   updateError: string | null;
   onCheckUpdate: () => void;
   onUpdate: () => void;
+  onRemove: () => void;
+  removing: boolean;
+  removeError: string | null;
 }) {
   const { t } = useI18n();
   const label = sourceLabel(skill);
@@ -140,6 +146,16 @@ function SkillDetail({
           )}
         </div>
       </div>
+
+      {skill.install && (
+        <ConfigField label="安装范围">
+          <span>{label === "global" ? "全局（可能被多个项目使用）" : "当前项目"}</span>
+          <ConfigButton variant="danger" size="small" onClick={onRemove} disabled={removing}>
+            {removing ? "卸载中…" : "卸载并删除"}
+          </ConfigButton>
+        </ConfigField>
+      )}
+      {removeError && <div role="alert" style={{ color: "#f87171", fontSize: 12 }}>{removeError}</div>}
 
       {skill.install?.skillsShUrl && (
         <ConfigField label="Source">
@@ -574,6 +590,8 @@ export function SkillsConfig({
   const [updatingSkill, setUpdatingSkill] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [projectResourcesLoaded, setProjectResourcesLoaded] = useState(true);
+  const [removingSkill, setRemovingSkill] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const loadSkills = useCallback(async () => {
     setLoading(true);
@@ -732,6 +750,30 @@ export function SkillsConfig({
       });
     }
   }, []);
+
+  const removeSkill = useCallback(async (skill: Skill) => {
+    if (!skill.install) return;
+    const scopeText = skill.install.scope === "global" ? "全局 Skill 可能被多个项目使用，卸载后其他项目也将无法使用它。" : "安装范围：当前项目。";
+    const activeText = skill.disableModelInvocation ? "" : "该 Skill 当前已启用，卸载后会立即停止工作。\n";
+    if (!window.confirm(`卸载并删除「${skill.name}」？\n\n${activeText}${scopeText}\n将删除 Skill 及其相关文件，此操作无法撤销。`)) return;
+    setRemovingSkill(skill.filePath);
+    setRemoveError(null);
+    try {
+      const response = await fetch("/api/skills/remove", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cwd, filePath: skill.filePath, scope: skill.install.scope, name: skill.name }),
+      });
+      const data = await response.json() as { error?: string; success?: boolean };
+      if (!response.ok || !data.success) throw new Error(data.error ?? `HTTP ${response.status}`);
+      setSaveError(`已卸载并删除「${skill.name}」`);
+      await loadSkills();
+    } catch (error) {
+      setRemoveError(`卸载失败：${error instanceof Error ? error.message : String(error)}。Skill 仍然保留，可重试。`);
+    } finally {
+      setRemovingSkill(null);
+    }
+  }, [cwd, loadSkills]);
 
   const selectedSkill = skills.find((s) => s.filePath === selected) ?? null;
 
@@ -903,6 +945,9 @@ export function SkillsConfig({
                 updateError={updateError}
                 onCheckUpdate={() => void checkForUpdates(selectedSkill)}
                 onUpdate={() => void updateInstalledSkill(selectedSkill)}
+                onRemove={() => void removeSkill(selectedSkill)}
+                removing={removingSkill === selectedSkill.filePath}
+                removeError={removeError}
               />
               ) : (
                 <ConfigEmptyState>{t("i18n.selectSkill")}</ConfigEmptyState>
