@@ -124,6 +124,7 @@ const TECHNICAL_PROJECT_EXTENSIONS = new Set([
   "map", "css", "scss", "less", "html", "xml", "py", "go", "rs", "java", "c", "cpp", "h", "hpp",
 ]);
 const TECHNICAL_PROJECT_DIRECTORIES = new Set(["node_modules", ".next", "dist", "build", "coverage", "target", "vendor"]);
+const HIDDEN_PROJECT_NAMES = new Set([".git", ".next", ".pi", ".pi-web", "node_modules", "dist", "build", "coverage", "target", "vendor"]);
 
 export type ProjectFileCategory = "uploaded" | "generated" | "other";
 
@@ -148,6 +149,13 @@ export function getProjectFileCategory(filePath: string): ProjectFileCategory {
   if (TECHNICAL_PROJECT_EXTENSIONS.has(extension)) return "other";
   if (USER_FACING_PROJECT_EXTENSIONS.has(extension)) return "uploaded";
   return "other";
+}
+
+function isSelectableTechnicalFile(filePath: string): boolean {
+  const segments = filePath.replaceAll("\\", "/").split("/");
+  const name = segments.at(-1) ?? "";
+  return !segments.some((segment) => HIDDEN_PROJECT_NAMES.has(segment) || segment.startsWith("."))
+    && !name.toLowerCase().endsWith(".lock");
 }
 
 export function getUpwardMenuMaxHeight(menuBottom: number, visibleTop: number, gap = ANCHORED_MENU_GAP): number {
@@ -635,6 +643,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const [projectSearch, setProjectSearch] = useState("");
   const [projectFileTab, setProjectFileTab] = useState<"uploaded" | "generated">("uploaded");
   const [showOtherProjectFiles, setShowOtherProjectFiles] = useState(false);
+  const [projectManageMode, setProjectManageMode] = useState(false);
+  const [managedUploadFiles, setManagedUploadFiles] = useState<string[]>([]);
+  const [managedFileError, setManagedFileError] = useState<string | null>(null);
   const [projectSelection, setProjectSelection] = useState<string[]>([]);
   const [projectFileLoading, setProjectFileLoading] = useState(false);
   const [projectFileNames, setProjectFileNames] = useState<Set<string>>(() => new Set());
@@ -954,15 +965,46 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     setProjectSearch("");
     setProjectFileTab("uploaded");
     setShowOtherProjectFiles(false);
+    setProjectManageMode(false);
+    setManagedFileError(null);
     setProjectSelection([]);
     if (!cwd) return;
     setProjectFileLoading(true);
-    fetch(`/api/file-index?cwd=${encodeURIComponent(cwd)}`)
-      .then((response) => response.ok ? response.json() as Promise<{ files?: string[] }> : Promise.reject(new Error("project files unavailable")))
-      .then((data) => setFileIndex({ cwd, entries: buildEntriesFromFiles(data.files ?? []).filter((entry) => !entry.isDir), truncated: false }))
+    Promise.all([
+      fetch(`/api/file-index?cwd=${encodeURIComponent(cwd)}`).then((response) => response.ok ? response.json() as Promise<{ files?: string[] }> : Promise.reject(new Error("project files unavailable"))),
+      fetch(`/api/attachments?cwd=${encodeURIComponent(cwd)}`).then((response) => response.ok ? response.json() as Promise<{ files?: string[] }> : Promise.resolve({ files: [] })),
+    ])
+      .then(([data, uploads]) => {
+        setManagedUploadFiles(uploads.files ?? []);
+        setFileIndex({ cwd, entries: buildEntriesFromFiles(data.files ?? []).filter((entry) => !entry.isDir), truncated: false });
+      })
       .catch(() => setFileIndex({ cwd, entries: [], truncated: false }))
       .finally(() => setProjectFileLoading(false));
   }, [cwd]);
+
+  const deleteManagedUploads = useCallback(async () => {
+    if (!cwd || projectSelection.length === 0) return;
+    const selected = projectSelection.filter((item) => managedUploadFiles.includes(item));
+    if (!selected.length) return;
+    if (!window.confirm(`确定从 Pi Chat 中删除这 ${selected.length} 个文件吗？\n\n删除后不会删除电脑中的原始文件。`)) return;
+    setProjectFileLoading(true);
+    setManagedFileError(null);
+    const failed: string[] = [];
+    for (const file of selected) {
+      const response = await fetch("/api/attachments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cwd, file }),
+      });
+      if (!response.ok) failed.push(file);
+    }
+    const deleted = selected.length - failed.length;
+    setManagedUploadFiles((current) => current.filter((file) => !selected.includes(file) || failed.includes(file)));
+    setProjectSelection((current) => current.filter((file) => !selected.includes(file) || failed.includes(file)));
+    if (failed.length) setManagedFileError(`已删除 ${deleted} 个文件，${failed.length} 个文件删除失败，可重试。`);
+    else setAttachmentNotice(`已删除 ${deleted} 个上传文件`);
+    setProjectFileLoading(false);
+  }, [cwd, managedUploadFiles, projectSelection]);
 
   const addProjectFiles = useCallback(async () => {
     if (!cwd || projectSelection.length === 0) return;
@@ -1844,6 +1886,13 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 <span aria-hidden="true" style={{ position: "absolute", left: 10, top: 8, color: "var(--text-dim)", fontSize: 14 }}>⌕</span>
                 <input autoFocus value={projectSearch} onChange={(event) => setProjectSearch(event.target.value)} placeholder={t("chat.projectFilesSearch")} style={{ boxSizing: "border-box", width: "100%", padding: "8px 10px 8px 28px", border: "1px solid var(--border)", borderRadius: 7, background: "var(--bg-panel)", color: "var(--text)", outline: "none" }} />
               </div>
+              {projectFileTab === "uploaded" && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <button type="button" onClick={() => { setProjectManageMode((value) => !value); setProjectSelection([]); setManagedFileError(null); }} style={{ border: 0, background: "transparent", color: "var(--text-muted)", cursor: "pointer", fontSize: 11 }}>
+                    {projectManageMode ? "完成" : "管理文件"}
+                  </button>
+                </div>
+              )}
               <div role="tablist" aria-label={t("chat.projectFileCategories")} style={{ display: "flex", gap: 4, marginTop: 10 }}>
                 {(["uploaded", "generated"] as const).map((tab) => (
                   <button key={tab} type="button" role="tab" aria-selected={projectFileTab === tab} onClick={() => setProjectFileTab(tab)} style={{ padding: "6px 10px", border: 0, borderRadius: 7, background: projectFileTab === tab ? "var(--bg-selected)" : "transparent", color: projectFileTab === tab ? "var(--text)" : "var(--text-muted)", cursor: "pointer", fontSize: 12, fontWeight: projectFileTab === tab ? 600 : 500 }}>{t(tab === "uploaded" ? "chat.uploadedFiles" : "chat.generatedFiles")}</button>
@@ -1851,13 +1900,18 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               </div>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+              {managedFileError && <div role="alert" style={{ padding: "8px 10px", color: "#dc2626", fontSize: 11 }}>{managedFileError}</div>}
               {projectFileLoading ? <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 12 }}>{t("chat.loadingFiles")}</div> : (() => {
                 const query = projectSearch.trim().toLowerCase();
                 const projectEntries = fileIndex && fileIndex.cwd === cwd ? fileIndex.entries : [];
-                const categorizedEntries = projectEntries.filter((entry) => getProjectFileCategory(entry.path) === (projectFileTab === "uploaded" ? "uploaded" : "generated"));
+                const managedEntries: FileIndexEntry[] = managedUploadFiles.map((path) => ({ path, isDir: false }));
+                const allUploadedEntries = [...managedEntries, ...projectEntries.filter((entry) => getProjectFileCategory(entry.path) === "uploaded" && !managedUploadFiles.includes(entry.path))];
+                const categorizedEntries = projectManageMode && projectFileTab === "uploaded"
+                  ? managedEntries
+                  : projectFileTab === "uploaded" ? allUploadedEntries : projectEntries.filter((entry) => getProjectFileCategory(entry.path) === "generated");
                 const entries = categorizedEntries.filter((entry) => !query || entry.path.toLowerCase().includes(query));
-                const otherEntries = projectEntries.filter((entry) => getProjectFileCategory(entry.path) === "other" && (!query || entry.path.toLowerCase().includes(query)));
-                const visibleEntries = showOtherProjectFiles ? [...entries, ...otherEntries] : entries;
+                const otherEntries = projectEntries.filter((entry) => getProjectFileCategory(entry.path) === "other" && isSelectableTechnicalFile(entry.path) && (!query || entry.path.toLowerCase().includes(query)));
+                const visibleEntries = showOtherProjectFiles && !projectManageMode ? [...entries, ...otherEntries] : entries;
                 return visibleEntries.length ? visibleEntries.map((entry) => {
                   const checked = projectSelection.includes(entry.path);
                   const fileName = entry.path.split("/").pop() ?? entry.path;
@@ -1867,8 +1921,16 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   return <label key={entry.path} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 7, cursor: "pointer", background: checked ? "var(--bg-selected)" : "transparent", color: "var(--text)", fontSize: 12 }}><input type="checkbox" checked={checked} onChange={() => setProjectSelection((current) => checked ? current.filter((item) => item !== entry.path) : [...current, entry.path])} />{isImage ? <ImagePreview src={imageSrc} alt={fileName} style={{ width: 28, height: 28, borderRadius: 5, objectFit: "cover" }}><span aria-hidden="true" style={{ display: "block", width: "100%", height: "100%", backgroundImage: `url(${imageSrc})`, backgroundPosition: "center", backgroundSize: "cover" }} /></ImagePreview> : <span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>{getFileIcon(fileName, 16)}</span>}<span style={{ minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileName}>{fileName}</span><span style={{ flexShrink: 0, color: "var(--text-dim)", fontSize: 11 }}>{t(`chat.fileFormat${formatKey}`)}</span></label>;
                 }) : <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 12 }}>{t(projectFileTab === "uploaded" ? "chat.noUploadedFiles" : "chat.noGeneratedFiles")}</div>;
               })()}
+              {projectFileTab === "uploaded" && projectManageMode && projectSelection.length > 0 && (
+                <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 10px", borderTop: "1px solid var(--border)" }}>
+                  <button type="button" onClick={() => void deleteManagedUploads()} style={{ border: 0, background: "transparent", color: "#dc2626", cursor: "pointer", fontSize: 11 }}>删除所选</button>
+                </div>
+              )}
               {!showOtherProjectFiles && projectFileTab !== "generated" && (
-                <button type="button" onClick={() => setShowOtherProjectFiles(true)} style={{ display: "block", width: "100%", marginTop: 8, padding: "8px 10px", border: 0, borderTop: "1px solid var(--border)", background: "transparent", color: "var(--text-dim)", textAlign: "left", cursor: "pointer", fontSize: 11 }}>{t("chat.viewOtherProjectFiles")}</button>
+                <button type="button" aria-expanded={false} onClick={() => setShowOtherProjectFiles(true)} style={{ display: "block", width: "100%", marginTop: 8, padding: "8px 10px", border: 0, borderTop: "1px solid var(--border)", background: "transparent", color: "var(--text-dim)", textAlign: "left", cursor: "pointer", fontSize: 11 }}>⌄ {t("chat.viewOtherProjectFiles")}</button>
+              )}
+              {showOtherProjectFiles && projectFileTab !== "generated" && (
+                <button type="button" aria-expanded onClick={() => setShowOtherProjectFiles(false)} style={{ display: "block", width: "100%", marginTop: 8, padding: "8px 10px", border: 0, borderTop: "1px solid var(--border)", background: "transparent", color: "var(--text-dim)", textAlign: "left", cursor: "pointer", fontSize: 11 }}>⌃ 收起其他项目文件</button>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", borderTop: "1px solid var(--border)" }}>
