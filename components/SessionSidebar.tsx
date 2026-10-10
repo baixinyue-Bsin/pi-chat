@@ -8,7 +8,7 @@ import { listSessionFamilies, type SessionFamily } from "@/lib/session-family";
 import { loadExplorerOpen, saveExplorerOpen } from "@/lib/file-explorer-state";
 import { dispatchSessionRowContextMenu } from "@/lib/session-row-context-menu";
 import { skillExpansionToCommand } from "@/lib/slash-display";
-import { getProjectActivity, getRecentProjects, getSessionCategory, getSessionTopic, type ProjectGroupId } from "@/lib/project-groups";
+import { getProjectActivity, getRecentProjects, getSessionCategory, getSessionTopic, migrateConversationProjectAssignment, recentSessionFamilies as getRecentSessionFamilies, type ProjectGroupId } from "@/lib/project-groups";
 import { workspaceKeyOf } from "@/lib/workspace-memory";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
@@ -472,6 +472,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   const [projectMoreMenuId, setProjectMoreMenuId] = useState<string | null>(null);
   const [projectMoreMenuAnchor, setProjectMoreMenuAnchor] = useState<DOMRect | null>(null);
   const [draggedConversationId, setDraggedConversationId] = useState<string | null>(null);
+  const projectDraftAssignmentsRef = useRef(new Map<string, string>());
   const [hoveredTopicKey, setHoveredTopicKey] = useState<string | null>(null);
   const [hoveredSectionId, setHoveredSectionId] = useState<SidebarSectionId | null>(null);
   const [sidebarScrolling, setSidebarScrolling] = useState(false);
@@ -1069,6 +1070,16 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   // works when the prop value won't change — e.g. re-clicking the already
   // open session after manually switching worktrees.
   const handleSelectSessionFromList = useCallback((s: SessionInfo, entryId?: string, blockIndex?: number) => {
+    const abandonedDraftIds = [...projectDraftAssignmentsRef.current.keys()]
+      .map((draftKey) => draftKey.slice("new:".length).split(":", 1)[0]);
+    if (abandonedDraftIds.length > 0) {
+      projectDraftAssignmentsRef.current.clear();
+      setConversationProjectAssignments((current) => {
+        const next = { ...current };
+        for (const id of abandonedDraftIds) delete next[id];
+        return next;
+      });
+    }
     setAllSessions((current) => current.some((session) => session.id === s.id) ? current : [s, ...current]);
     if (s.cwd) setSelectedCwd(s.cwd);
     onSelectSession(s, false, entryId, blockIndex);
@@ -1076,6 +1087,18 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
 
   const handleNewSession = useCallback(() => {
     if (!selectedCwd) return;
+    // A project draft that was left before its first message must not survive
+    // as an assignment to a session that will never be created.
+    const abandonedDraftIds = [...projectDraftAssignmentsRef.current.keys()]
+      .map((draftKey) => draftKey.slice("new:".length).split(":", 1)[0]);
+    projectDraftAssignmentsRef.current.clear();
+    if (abandonedDraftIds.length > 0) {
+      setConversationProjectAssignments((current) => {
+        const next = { ...current };
+        for (const id of abandonedDraftIds) delete next[id];
+        return next;
+      });
+    }
     // Generate a temporary UUID client-side — no backend call needed.
     // Pi will be spawned lazily when the user sends the first message.
     const tempId = typeof crypto.randomUUID === "function"
@@ -1083,6 +1106,26 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
     onNewSession?.(tempId, selectedCwd);
   }, [selectedCwd, onNewSession]);
+
+  // AppShell owns the promotion from a draft to pi's real session id. Keep
+  // the project assignment here, where the project catalog is owned, and
+  // migrate it when AppShell announces that promotion.
+  useEffect(() => {
+    const onSessionCreated = (event: Event) => {
+      const detail = (event as CustomEvent<{ sessionId?: string; sourceDraftKey?: string }>).detail;
+      if (!detail?.sessionId || !detail.sourceDraftKey) return;
+      const projectId = projectDraftAssignmentsRef.current.get(detail.sourceDraftKey);
+      if (!projectId) return;
+      const draftId = [...projectDraftAssignmentsRef.current.entries()]
+        .find(([draftKey]) => draftKey === detail.sourceDraftKey)?.[0];
+      if (!draftId) return;
+      const tempId = draftId.slice("new:".length).split(":", 1)[0];
+      setConversationProjectAssignments((current) => migrateConversationProjectAssignment(current, tempId, detail.sessionId!));
+      projectDraftAssignmentsRef.current.delete(detail.sourceDraftKey!);
+    };
+    window.addEventListener("pi-web:session-created", onSessionCreated);
+    return () => window.removeEventListener("pi-web:session-created", onSessionCreated);
+  }, []);
 
   const closeProjectDialog = useCallback(() => {
     setProjectDialogOpen(false);
@@ -1151,6 +1194,9 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     setConversationProjectAssignments((current) => Object.fromEntries(
       Object.entries(current).filter(([, projectId]) => projectId !== project.id),
     ));
+    for (const [draftKey, projectId] of projectDraftAssignmentsRef.current) {
+      if (projectId === project.id) projectDraftAssignmentsRef.current.delete(draftKey);
+    }
     setUserProjects((current) => current.filter((entry) => entry.id !== project.id));
     setPinnedUserProjectIds((current) => {
       const next = new Set(current);
@@ -1199,6 +1245,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     const tempId = typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    projectDraftAssignmentsRef.current.set(`new:${tempId}:${cwd}`, project.id);
     moveConversationToProject(tempId, project.id);
     setUserProjects((current) => current.map((entry) => entry.id === project.id
       ? { ...entry, updatedAt: new Date().toISOString() }
@@ -1220,8 +1267,8 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   );
   const recentSessionFamilies = useMemo(
     // Recent is deliberately a short shortcut, never a second full history.
-    () => sessionFamilies.slice(0, 5),
-    [sessionFamilies],
+    () => getRecentSessionFamilies(sessionFamilies, conversationProjectAssignments),
+    [conversationProjectAssignments, sessionFamilies],
   );
   const topicSessionGroups = useMemo(() => {
     const groups = new Map<string, SessionFamily[]>();
@@ -1346,6 +1393,12 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
         onClick={() => handleSelectSessionFromList(family.root)}
         onRenamed={loadSessions}
         onDeleted={(id) => {
+          setConversationProjectAssignments((current) => {
+            if (!(id in current)) return current;
+            const next = { ...current };
+            delete next[id];
+            return next;
+          });
           onSessionDeleted?.(id);
           loadSessions();
         }}

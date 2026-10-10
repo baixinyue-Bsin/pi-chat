@@ -1,4 +1,5 @@
 import type { SessionInfo } from "./types";
+import type { SessionFamily } from "./session-family";
 import { workspaceKeyOf } from "./workspace-memory";
 
 export interface RecentProject {
@@ -116,4 +117,27 @@ export function sessionsForProject(
   projectKey: string,
 ): SessionInfo[] {
   return sessions.filter((session) => workspaceKeyOf(session) === projectKey);
+}
+
+/** Project-view recent conversations exclude every conversation already assigned to a project. */
+export function recentSessionFamilies(
+  families: readonly SessionFamily[],
+  assignments: Readonly<Record<string, string>>,
+  limit = 5,
+): SessionFamily[] {
+  return families.filter((family) => !assignments[family.root.id]).slice(0, limit);
+}
+
+/** Move a single conversation assignment without ever leaving the draft key behind. */
+export function migrateConversationProjectAssignment(
+  assignments: Readonly<Record<string, string>>,
+  draftId: string,
+  sessionId: string,
+): Record<string, string> {
+  const projectId = assignments[draftId];
+  if (!projectId) return { ...assignments };
+  const next = { ...assignments };
+  delete next[draftId];
+  next[sessionId] = projectId;
+  return next;
 }
