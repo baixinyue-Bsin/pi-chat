@@ -68,8 +68,8 @@ export class ServerManager {
   }
 
   startServer(): Promise<void> {
-    if (this.child && !this.exited) return Promise.resolve();
     if (this.startPromise) return this.startPromise;
+    if (this.child && !this.exited) return Promise.resolve();
 
     this.exited = false;
     this.stopRequested = false;
