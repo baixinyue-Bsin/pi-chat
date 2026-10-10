@@ -813,6 +813,11 @@ export function AppShell() {
   // Called by ChatWindow when a new session gets its real id from pi
   const handleSessionCreated = useCallback((session: SessionInfo, sourceDraftKey: string) => {
     setRefreshKey((k) => k + 1);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pi-web:session-created", {
+        detail: { sessionId: session.id, sourceDraftKey },
+      }));
+    }
     if (activeNewSessionDraftKeyRef.current !== sourceDraftKey) return;
     invalidateWorkspaceRestore();
     activeNewSessionDraftKeyRef.current = null;
