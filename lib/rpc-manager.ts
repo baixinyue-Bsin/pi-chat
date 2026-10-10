@@ -142,7 +142,7 @@ export function resolveSessionIdleTimeoutMs(
   if (rawValue !== undefined && rawValue.trim() !== "") {
     const parsed = Number(rawValue);
     if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 2_147_483_647) return parsed;
-    console.warn(`[pi-web] invalid PI_WEB_IDLE_TIMEOUT_MS "${rawValue}", falling back to 10 minutes`);
+    console.warn(`[pi-chat] invalid PI_WEB_IDLE_TIMEOUT_MS "${rawValue}", falling back to 10 minutes`);
   }
   return DEFAULT_SESSION_IDLE_TIMEOUT_MS;
 }
@@ -324,13 +324,13 @@ export class AgentSessionWrapper {
     try {
       this.onAgentRunComplete?.(this.sessionId);
     } catch (error) {
-      console.error("[pi-web] completion listener failed:", error instanceof Error ? error.message : error);
+      console.error("[pi-chat] completion listener failed:", error instanceof Error ? error.message : error);
     }
   }
 
   beginExtensionBinding(): void {
     void this.ensureExtensionsBound().catch((err) => {
-      console.error("[pi-web] failed to dispatch session_start to extensions:", err instanceof Error ? err.message : err);
+      console.error("[pi-chat] failed to dispatch session_start to extensions:", err instanceof Error ? err.message : err);
     });
   }
 
@@ -366,7 +366,7 @@ export class AgentSessionWrapper {
             id: randomUUID(),
             method: "notify",
             notifyType: "warning",
-            message: "Extension requested shutdown, but shutdown is not supported in Pi Web.",
+            message: "Extension requested shutdown, but shutdown is not supported in Pi Chat.",
           } as ExtensionUiRequest as AgentEvent),
           onError: (error) => this.emit({
             type: "extension_error",
@@ -380,7 +380,7 @@ export class AgentSessionWrapper {
       }
       this.extensionsBound = true;
       this.applyExactSystemPrompt();
-      console.log(`[pi-web] session_start dispatched to extensions for session ${this.inner.sessionId}`);
+            console.log(`[pi-chat] session_start dispatched to extensions for session ${this.inner.sessionId}`);
     })().catch((err) => {
       this.extensionBindingError = err;
       throw err;
@@ -449,7 +449,7 @@ export class AgentSessionWrapper {
         listener(event);
       } catch (error) {
         console.error(
-          `[pi-web] failed to deliver ${event.type} event:`,
+          `[pi-chat] failed to deliver ${event.type} event:`,
           error instanceof Error ? error.message : error,
         );
       }
@@ -481,7 +481,7 @@ export class AgentSessionWrapper {
         return;
       }
       void this.shutdown().catch((error) => {
-        console.error("[pi-web] failed to shut down idle session:", error instanceof Error ? error.message : error);
+        console.error("[pi-chat] failed to shut down idle session:", error instanceof Error ? error.message : error);
       });
     }, SESSION_IDLE_TIMEOUT_MS);
   }
@@ -545,7 +545,7 @@ export class AgentSessionWrapper {
       await this.shutdown();
     } catch (error) {
       console.error(
-        `[pi-web] ${replacement} succeeded, but source session shutdown failed:`,
+          `[pi-chat] ${replacement} succeeded, but source session shutdown failed:`,
         error instanceof Error ? error.message : error,
       );
     }
@@ -670,7 +670,7 @@ export class AgentSessionWrapper {
             }
           }).catch((error) => {
             console.error(
-              "[pi-web] prompt completion handler failed:",
+              "[pi-chat] prompt completion handler failed:",
               error instanceof Error ? error.message : error,
             );
           });
@@ -1072,7 +1072,7 @@ export class AgentSessionWrapper {
     ))()
       .catch((error) => {
         console.error(
-          "[pi-web] session_shutdown before dispose failed:",
+          "[pi-chat] session_shutdown before dispose failed:",
           error instanceof Error ? error.message : error,
         );
       })
@@ -1089,7 +1089,7 @@ export class AgentSessionWrapper {
           await this.waitForExtensionsBound();
         } catch (error) {
           console.error(
-            "[pi-web] extension binding failed before session shutdown:",
+            "[pi-chat] extension binding failed before session shutdown:",
             error instanceof Error ? error.message : error,
           );
         }
@@ -1627,7 +1627,7 @@ export class AgentSessionWrapper {
       get theme() { return PLAIN_TEXT_THEME; },
       getAllThemes: () => [],
       getTheme: () => undefined,
-      setTheme: () => ({ success: false, error: "Theme switching is not supported in Pi Web extension UI yet" }),
+      setTheme: () => ({ success: false, error: "Theme switching is not supported in Pi Chat extension UI yet" }),
       getToolsExpanded: () => false,
       setToolsExpanded: () => {},
     };
@@ -2013,7 +2013,7 @@ export async function startRpcSession(
       // Otherwise DO NOT pass a builtin-only allow-list: passing CODING_TOOL_NAMES
       // set allowedToolNames to coding builtins only, which filtered every
       // extension/package-provided tool (e.g. subagents, web access) out of the
-      // tool registry — so they were unavailable in Pi Web sessions even though the
+      // tool registry — so they were unavailable in Pi Chat sessions even though the
       // `pi` CLI keeps them. Leaving the allow-list unset lets the SDK register all
       // tools (and activate extension tools); we narrow the ACTIVE set below.
       toolsOption = selectedToolNames.length === 0 ? [] : undefined;
@@ -2126,7 +2126,7 @@ export async function startRpcSession(
 
     // If specific tool names were requested (non-empty), set the active tools to the
     // requested builtin coding tools PLUS all extension/package tools, so installed
-    // extensions stay usable in Pi Web just like in the `pi` CLI.
+    // extensions stay usable in Pi Chat just like in the `pi` CLI.
     if (!subagentResources && !chatOnly) {
       inner.setActiveToolsByName(withExtensionTools(inner, selectedToolNames ?? inner.getActiveToolNames()));
     }
@@ -2143,7 +2143,7 @@ export async function startRpcSession(
       chatOnly,
       onAgentRunComplete: (completedSessionId) => {
         void notifySessionComplete(completedSessionId).catch((error) => {
-          console.error("[pi-web] failed to send completion push:", error instanceof Error ? error.message : error);
+          console.error("[pi-chat] failed to send completion push:", error instanceof Error ? error.message : error);
         });
       },
       suppressCompletionNotifications: Boolean(subagentResources),

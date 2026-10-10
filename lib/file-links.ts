@@ -8,7 +8,7 @@ interface LocalFileClickEvent {
 }
 
 export function shouldOpenLocalFileInApp(event: LocalFileClickEvent): boolean {
-  // Browsers block file:// navigation from Pi Web's HTTP origin, so the
+  // Browsers block file:// navigation from Pi Chat's HTTP origin, so the
   // platform primary modifier must use the same in-app preview as a plain click.
   return !event.defaultPrevented
     && event.button === 0

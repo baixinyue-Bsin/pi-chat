@@ -392,11 +392,9 @@ test("keeps the attachment menu anchored below the plus button and simplifies dr
   const chatInput = readFileSync(new URL("./ChatInput.tsx", import.meta.url), "utf8");
   const chatWindow = readFileSync(new URL("./ChatWindow.tsx", import.meta.url), "utf8");
   const zhCN = readFileSync(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
-  const zhTW = readFileSync(new URL("../lib/i18n/messages/zh-TW.ts", import.meta.url), "utf8");
   const en = readFileSync(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
 
   assert.match(zhCN, /"chat\.messagePlaceholder": "使用 Pi Chat"/);
-  assert.match(zhTW, /"chat\.messagePlaceholder": "使用 Pi Chat"/);
   assert.match(en, /"chat\.messagePlaceholder": "Use Pi Chat"/);
   assert.match(chatInput, /position: "fixed"[\s\S]*top: attachmentMenuPosition\.top/);
   assert.match(chatInput, /const top = rect\.bottom \+ ANCHORED_MENU_GAP/);

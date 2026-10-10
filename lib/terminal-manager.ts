@@ -83,10 +83,10 @@ export function createTerminal(cwd: string, cols: number, rows: number, id: stri
   } catch (error) {
     throw new Error(
       `Cannot load the node-pty native terminal module for ${process.platform}-${process.arch}. ` +
-      "The binary may be missing or incompatible. In the pi-web installation directory " +
+      "The binary may be missing or incompatible. In the pi-chat installation directory " +
       "(the npx cache directory when using npx), run: npm rebuild node-pty --build-from-source --ignore-scripts=false --foreground-scripts. " +
       "On Debian/Ubuntu, install build tools first: sudo apt-get install -y python3 build-essential. " +
-      `Then restart pi-web. Original error: ${error instanceof Error ? error.message : String(error)}`,
+      `Then restart pi-chat. Original error: ${error instanceof Error ? error.message : String(error)}`,
       { cause: error },
     );
   }

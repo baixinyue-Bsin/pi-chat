@@ -27,7 +27,11 @@ function getMessages(): Record<string, Record<string, string>> {
 function readInitialLocale(): Locale {
   try {
     const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (stored === "en" || stored === "zh-CN" || stored === "zh-TW") return stored;
+    if (stored === "en" || stored === "zh-CN") return stored;
+    // Older releases accepted Traditional Chinese locale values. Keep
+    // those saved preferences readable while mapping every zh-* variant to
+    // the only supported Chinese locale.
+    if (typeof stored === "string" && stored.startsWith("zh-")) return "zh-CN";
   } catch {
     // 隐私模式或存储不可用时继续使用浏览器语言。
   }
@@ -35,7 +39,7 @@ function readInitialLocale(): Locale {
 }
 
 /**
- * 提供 Pi Web 的界面语言状态和翻译能力。
+ * 提供 Pi Chat 的界面语言状态和翻译能力。
  * @param props React 子节点
  * @returns 包含语言上下文的 React 节点
  */

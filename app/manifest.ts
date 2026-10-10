@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "Pi Chat",
     short_name: "Pi Chat",
-    description: "Local chat workspace for the pi coding agent",
+    description: "Pi Chat local workspace for the pi coding agent",
     start_url: "/",
     scope: "/",
     display: "standalone",

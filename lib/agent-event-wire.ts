@@ -54,7 +54,7 @@ function toolCallMetadata(
   return id !== null && toolName !== null ? { id, toolName } : null;
 }
 
-/** Apply pi-web's event filters plus Pi 0.84's message_update projection. */
+/** Apply Pi Chat's event filters plus Pi 0.84's message_update projection. */
 export function toClientAgentEvent(
   event: AgentEventLike,
 ): AgentEventLike | ClientMessageUpdateEvent | null {

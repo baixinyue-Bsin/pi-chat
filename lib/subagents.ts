@@ -250,7 +250,7 @@ function unmanagedFrontmatter(stored: Record<string, unknown>): Record<string, u
 }
 
 /**
- * pi-web filters `tools` down to the built-ins it can dispatch, which would drop
+ * Pi Chat filters `tools` down to the built-ins it can dispatch, which would drop
  * another runtime's `ext:<name>` selectors on every save — carry them through.
  */
 function composeToolsField(tools: string[], storedTools: unknown): string {

@@ -195,7 +195,7 @@ export function createSubagentExtension(
                 .then((run) => runtime.notifyParent(run))
                 .catch((error) => {
                   console.error(
-                    "[pi-web] failed to deliver subagent completion:",
+                    "[pi-chat] failed to deliver subagent completion:",
                     error instanceof Error ? error.message : error,
                   );
                 });
@@ -277,7 +277,7 @@ export function createSubagentExtension(
   };
 }
 
-/** Keep Pi Web's integrated implementation when the legacy package is loaded. */
+/** Keep Pi Chat's integrated implementation when the legacy package is loaded. */
 export function preferPiWebSubagentExtension(base: LoadExtensionsResult): LoadExtensionsResult {
   const host = base.extensions.find((extension) => extension.path === HOST_SUBAGENT_EXTENSION_PATH);
   if (!host?.tools.has("Agent")) return base;

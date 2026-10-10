@@ -43,14 +43,14 @@ function stateFilePath(): string {
 /**
  * VAPID subject must be a valid `mailto:` or `https:` URL. Apple's push
  * service rejects requests whose subject is not a syntactically valid URL
- * (e.g. the previously used `mailto:pi-web@localhost`, which Apple answers
+ * (e.g. the previously used local `mailto:` subject, which Apple answers
  * with 403 BadJwtToken), so default to the project homepage and let operators
  * override it via PI_WEB_PUSH_SUBJECT.
  */
 export function vapidSubject(): string {
   const configured = process.env.PI_WEB_PUSH_SUBJECT?.trim();
   if (configured) return configured;
-  return "https://github.com/agegr/pi-web";
+  return "https://github.com/baixinyue-Bsin/pi-chat";
 }
 
 // Ask the push service to deliver immediately. Lower urgencies let idle

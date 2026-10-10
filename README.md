@@ -1,8 +1,8 @@
 # Pi Chat
 
-[中文文档](./README.zh-CN.md) | [日本語](./README.ja.md) | [Русский](./README.ru.md)
+[简体中文](./README.zh-CN.md)
 
-Local browser UI for the [pi coding agent](https://github.com/earendil-works/pi). Pi Chat is a Pi Web-based modification and uses the same local configuration and session files as pi.
+Local browser UI for the [pi coding agent](https://github.com/earendil-works/pi). Pi Chat uses the same local configuration and session files as pi.
 
 ![Pi Chat displaying a pi session with structured Markdown, tool calls, and project navigation](./docs/screenshot2.png)
 
@@ -12,8 +12,8 @@ Local browser UI for the [pi coding agent](https://github.com/earendil-works/pi)
 - **Two ways to branch**: **New session** creates an independent session file from an earlier message; **Edit from here** creates a branch inside the current session.
 - **Project file tools**: browse and upload files, inspect Git diffs, and preview source, Markdown, images, audio, PDFs, and DOCX files with automatic refresh.
 - **Git worktrees**: switch checkouts from the sidebar while keeping sessions from the same repository grouped together.
-- **Web-based configuration**: manage provider login and API keys, models, model tests, plugin packages, and skills without leaving Pi Web.
-- **English, Simplified Chinese, and Traditional Chinese UI**: Pi Web follows the browser language initially and provides a language switcher in the top bar.
+- **Web-based configuration**: manage provider login and API keys, models, model tests, plugin packages, and skills in Pi Chat.
+- **English and Simplified Chinese UI**: Pi Chat follows the browser language initially and provides a language switcher in the settings panel.
 
 ## Run from Source
 
@@ -31,11 +31,11 @@ Open [http://127.0.0.1:30141](http://127.0.0.1:30141). On first use, configure y
 
 ## Open-source notice
 
-This project is modified from Pi Web and is distributed under the MIT License. See [LICENSE](./LICENSE) for the original license and copyright notices.
+Pi Chat is distributed under the MIT License. See [LICENSE](./LICENSE) for the original license and copyright notices.
 
 ## Configuration
 
-For port and hostname, command-line options override the corresponding environment variables. Either `--no-open` or `PI_WEB_NO_OPEN=1` disables automatic browser opening. Run `pi-web --help` (or `-h`) to print startup options and exit without starting the server. Unknown options exit with an error.
+For port and hostname, command-line options override the corresponding environment variables. Either `--no-open` or `PI_WEB_NO_OPEN=1` disables automatic browser opening. Run `pi-chat --help` (or `-h`) to print startup options and exit without starting the server. Unknown options exit with an error.
 
 | Option or environment variable | Purpose | Default |
 | --- | --- | --- |
@@ -43,7 +43,7 @@ For port and hostname, command-line options override the corresponding environme
 | `--port <port>`, `-p <port>`, or `PORT` | Server port | `30141` |
 | `--hostname <host>`, `-H <host>`, or `PI_WEB_HOSTNAME` | Bind hostname | `127.0.0.1` |
 | `--no-open` or `PI_WEB_NO_OPEN=1` | Do not open a browser automatically | Browser opens |
-| `PI_WEB_SKIP_VERSION_CHECK=1` | Disable Pi Web update checks | Unset |
+| `PI_WEB_SKIP_VERSION_CHECK=1` | Disable Pi Chat update checks | Unset |
 | `PI_WEB_ALLOWED_HOSTS` | Additional exact proxy or custom hostnames, comma-separated | Unset |
 | `PI_WEB_PASSWORD` | Enable browser password login; API clients may use Basic Auth with username `pi` | Authentication disabled |
 | `PI_WEB_IDLE_TIMEOUT_MS` | Session idle timeout in milliseconds, up to `2147483647`; `0` disables idle shutdown; invalid or out-of-range values use the default | `600000` (10 min) |
@@ -63,7 +63,7 @@ Binding to a non-loopback address exposes an agent that can execute high-privile
 PI_WEB_PASSWORD='a-long-random-password' pi-chat --hostname 0.0.0.0
 ```
 
-Password authentication does not encrypt the connection. Do not expose Pi Web over plain HTTP to the internet; use HTTPS through a trusted reverse proxy or a trusted VPN. If a reverse proxy sends an external hostname, add that exact name to `PI_WEB_ALLOWED_HOSTS`. This allow-list does not change the address Pi Web binds to.
+Password authentication does not encrypt the connection. Do not expose Pi Chat over plain HTTP to the internet; use HTTPS through a trusted reverse proxy or a trusted VPN. If a reverse proxy sends an external hostname, add that exact name to `PI_WEB_ALLOWED_HOSTS`. This allow-list does not change the address Pi Chat binds to.
 
 ### HTTP Proxy
 
@@ -89,11 +89,11 @@ npm start
 
 ## Notes
 
-- **Agent data**: Pi Web reads pi data from `~/.pi/agent` by default, including session files under `sessions/<encoded-cwd>/<timestamp>_<uuid>.jsonl`. Set `PI_CODING_AGENT_DIR` to use another pi agent directory.
-- **Filesystem access**: Pi Web must be able to read the agent data directory and the working directories recorded by its sessions. Run Pi Web in the same filesystem environment as pi when sharing existing sessions.
+- **Agent data**: Pi Chat reads pi data from `~/.pi/agent` by default, including session files under `sessions/<encoded-cwd>/<timestamp>_<uuid>.jsonl`. Set `PI_CODING_AGENT_DIR` to use another pi agent directory.
+- **Filesystem access**: Pi Chat must be able to read the agent data directory and the working directories recorded by its sessions. Run Pi Chat in the same filesystem environment as pi when sharing existing sessions.
 - **Shared configuration**: the Models panel uses pi's model, settings, and credential storage, so changes are visible to both interfaces.
-- **File access boundary**: the file browser is limited to working directories selected in Pi Web and project or session roots it already knows about; it is not a general filesystem browser.
-- **Git worktrees**: see [Worktrees in Pi Web](./docs/worktrees.md) for switcher visibility, worktree creation, and removal behavior.
+- **File access boundary**: the file browser is limited to working directories selected in Pi Chat and project or session roots it already knows about; it is not a general filesystem browser.
+- **Git worktrees**: see [Worktrees in Pi Chat](./docs/worktrees.md) for switcher visibility, worktree creation, and removal behavior.
 
 ### Downstream Session Context Menu
 
@@ -115,7 +115,7 @@ window.addEventListener("pi-web:session-row-contextmenu", (event) => {
 
 The detail object contains `id`, `path`, `cwd`, optional `name`, pointer
 coordinates, and a `refresh()` callback for actions that change the session
-list. If no listener cancels the extension event, Pi Web preserves the
+list. If no listener cancels the extension event, Pi Chat preserves the
 browser's native context menu. This hook is browser-side and independent of
 Pi agent extensions.
 

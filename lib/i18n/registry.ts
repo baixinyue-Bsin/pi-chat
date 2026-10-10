@@ -1,9 +1,8 @@
 import { enLocale } from "./messages/en";
 import { zhCNLocale } from "./messages/zh-CN";
-import { zhTWLocale } from "./messages/zh-TW";
 import type { Locale, LocalePlugin } from "./types";
 
-const localePlugins: LocalePlugin[] = [enLocale, zhCNLocale, zhTWLocale];
+const localePlugins: LocalePlugin[] = [enLocale, zhCNLocale];
 
 /**
  * 根据标识获取已注册的语言包。
@@ -20,7 +19,7 @@ export function getSupportedLocales(): string[] {
 }
 
 /**
- * 将浏览器语言列表解析为 Pi Web 内置语言。
+ * 将浏览器语言列表解析为 Pi Chat 内置语言。
  * @param languages 浏览器按优先级排列的语言列表
  * @returns 匹配的内置语言，无法匹配时返回英语
  */
@@ -31,10 +30,6 @@ export function resolveBrowserLocale(languages: readonly string[]): Locale {
     if (normalized === "zh" || normalized === "zh-cn" || normalized.startsWith("zh-cn-")
       || normalized === "zh-sg" || normalized.startsWith("zh-sg-")
       || normalized === "zh-hans" || normalized.startsWith("zh-hans-")) return "zh-CN";
-    if (normalized === "zh-tw" || normalized.startsWith("zh-tw-")
-      || normalized === "zh-hk" || normalized.startsWith("zh-hk-")
-      || normalized === "zh-mo" || normalized.startsWith("zh-mo-")
-      || normalized === "zh-hant" || normalized.startsWith("zh-hant-")) return "zh-TW";
     if (normalized.startsWith("zh-")) return "zh-CN";
   }
   return "en";

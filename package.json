@@ -1,7 +1,7 @@
 {
   "name": "pi-chat",
   "version": "1.1.0",
-  "description": "Local chat UI for the pi coding agent",
+  "description": "Pi Chat local browser UI for the pi coding agent",
   "homepage": "https://github.com/baixinyue-Bsin/pi-chat#readme",
   "repository": {
     "type": "git",
@@ -15,7 +15,7 @@
     "node": ">=22.19.0"
   },
   "bin": {
-    "pi-chat": "bin/pi-web.js"
+    "pi-chat": "bin/pi-chat.js"
   },
   "files": [
     "bin",
