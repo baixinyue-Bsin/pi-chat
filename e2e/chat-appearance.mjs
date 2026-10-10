@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 async function openSettings(page) {
   const settings = page.getByRole("button", { name: "Settings", exact: true });
   if (!await settings.isVisible()) {
-    await page.getByRole("button", { name: /betty/i }).click();
+    await page.getByRole("button", { name: /account/i }).click();
   }
   await settings.click();
 }
