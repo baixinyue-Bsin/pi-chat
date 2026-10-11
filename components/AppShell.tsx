@@ -58,6 +58,8 @@ import type { FileViewerState } from "@/lib/file-viewer-state";
 import type { ToolEntry } from "@/lib/tool-presets";
 import { getSessionFamily } from "@/lib/session-family";
 import { getLastSettingsSection, type SettingsSection } from "@/lib/settings-navigation";
+import { getDesktopApi } from "@/lib/desktop-api";
+import { OnboardingDialog } from "./OnboardingDialog";
 
 type SessionCopyField = "file" | "id" | "projectDir" | "gitBranch" | "gitWorktree";
 type AutoNameStatus =
@@ -161,6 +163,31 @@ export function AppShell() {
   const [explorerRefreshKey, setExplorerRefreshKey] = useState(0);
   const [settingsSection, setSettingsSection] = useState<SettingsSection | null>(null);
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
+  const [onboardingVisible, setOnboardingVisible] = useState(false);
+
+  useEffect(() => {
+    const desktop = getDesktopApi();
+    if (!desktop) return;
+    let cancelled = false;
+    void desktop.getOnboardingState()
+      .then((state) => {
+        if (!cancelled && !state.completed) setOnboardingVisible(true);
+      })
+      .catch(() => {
+        // A missing or unavailable desktop bridge must never affect Web mode.
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const finishOnboarding = useCallback(async (openModels: boolean) => {
+    try {
+      await getDesktopApi()?.completeOnboarding();
+    } catch {
+      // The dialog should still close if the bridge is temporarily unavailable.
+    }
+    setOnboardingVisible(false);
+    if (openModels) setSettingsSection("models");
+  }, []);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
   const [projectTrustBusy, setProjectTrustBusy] = useState(false);
@@ -2419,6 +2446,12 @@ export function AppShell() {
           setModelsRefreshKey((key) => key + 1);
         }}
         onSessionReloaded={() => setSessionKey((key) => key + 1)}
+      />
+    )}
+    {onboardingVisible && (
+      <OnboardingDialog
+        onConfigure={() => { void finishOnboarding(true); }}
+        onLater={() => { void finishOnboarding(false); }}
       />
     )}
     {projectTrustDialogOpen && projectTrustCwd && (

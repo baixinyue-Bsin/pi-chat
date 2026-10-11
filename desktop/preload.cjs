@@ -1,3 +1,10 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-require-imports */
 
-// Stage two exposes no privileged renderer API.
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("piChatDesktop", {
+  isElectron: true,
+  getOnboardingState: () => ipcRenderer.invoke("pi-chat:onboarding:get-state"),
+  completeOnboarding: () => ipcRenderer.invoke("pi-chat:onboarding:complete"),
+});

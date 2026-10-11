@@ -2,6 +2,7 @@ import { createServer } from "node:net";
 import { once } from "node:events";
 import { ServerManager } from "../lib/server-manager";
 import { resolveDesktopPaths, resolveNodeExecutable } from "./paths";
+import { completeOnboarding, readOnboardingState } from "./onboarding-state";
 
 type WindowEvent = (...args: unknown[]) => void;
 
@@ -10,6 +11,7 @@ export type ElectronApi = {
     whenReady(): Promise<void>;
     requestSingleInstanceLock?(): boolean;
     getAppPath?(): string;
+    getPath?(name: "userData"): string;
     isPackaged?: boolean;
     on(event: string, listener: WindowEvent): void;
     quit(): void;
@@ -31,6 +33,10 @@ export type ElectronApi = {
     showMessageBox(options: { type: "error"; title: string; message: string; buttons: string[] }): Promise<unknown>;
     showErrorBox?(title: string, content: string): void;
   };
+  ipcMain?: {
+    handle(channel: string, listener: (...args: unknown[]) => unknown): void;
+    removeHandler?(channel: string): void;
+  };
 };
 
 export type DesktopOptions = {
@@ -50,6 +56,22 @@ export type DesktopController = {
   getPort(): number | undefined;
   getWindow(): unknown;
 };
+
+export const ONBOARDING_GET_CHANNEL = "pi-chat:onboarding:get-state";
+export const ONBOARDING_COMPLETE_CHANNEL = "pi-chat:onboarding:complete";
+
+export function registerOnboardingIpc(electron: ElectronApi): void {
+  const ipcMain = electron.ipcMain;
+  const userDataPath = electron.app.getPath?.("userData");
+  if (!ipcMain || !userDataPath) return;
+  ipcMain.removeHandler?.(ONBOARDING_GET_CHANNEL);
+  ipcMain.removeHandler?.(ONBOARDING_COMPLETE_CHANNEL);
+  ipcMain.handle(ONBOARDING_GET_CHANNEL, async () => readOnboardingState(userDataPath));
+  ipcMain.handle(ONBOARDING_COMPLETE_CHANNEL, async () => {
+    await completeOnboarding(userDataPath);
+    return { completed: true };
+  });
+}
 
 export async function getFreePort(hostname = "127.0.0.1"): Promise<number> {
   const probe = createServer();
@@ -220,5 +242,6 @@ export async function startElectronApp(electron: ElectronApi): Promise<void> {
     window?.focus?.();
   });
   await app.whenReady();
+  registerOnboardingIpc(electron);
   await controller.start().catch(() => undefined);
 }
