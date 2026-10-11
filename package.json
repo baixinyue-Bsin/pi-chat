@@ -28,7 +28,8 @@
     "public",
     "next.config.ts",
     "package.json",
-    "desktop"
+    "desktop",
+    "!desktop/node-runtime/bin/**"
   ],
   "scripts": {
     "postinstall": "node bin/prepare-terminal.js",
@@ -45,6 +46,7 @@
     "desktop:dev": "electron desktop/launcher.cjs",
     "desktop:download-node": "node scripts/download-node-runtime.mjs",
     "desktop:pack:mac": "npm run desktop:download-node && electron-builder --mac dir --config desktop/electron-builder.cjs",
+    "desktop:release:mac": "npm run build && npm run desktop:pack:mac",
     "desktop:test": "node --experimental-strip-types --test \"desktop/**/*.test.mjs\""
   },
   "dependencies": {

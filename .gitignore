@@ -20,6 +20,7 @@
 
 # production
 /build
+/dist/
 
 # packaged macOS runtime (the README remains tracked)
 /desktop/node-runtime/*
