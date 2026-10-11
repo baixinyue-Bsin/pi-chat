@@ -15,7 +15,9 @@ export function OnboardingDialog({ onConfigure, onLater }: { onConfigure: () => 
     >
       <div className="onboarding-card">
         <button type="button" className="onboarding-close" aria-label={t("i18n.close")} onClick={onLater}>×</button>
-        <div className="onboarding-mark" aria-hidden="true">✦</div>
+        {/* The onboarding mark is a small, fixed public brand asset. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="onboarding-mark" src="/pi-chat-mark.png" alt="" aria-hidden="true" />
         <h1 id="onboarding-title" className="onboarding-title">{t("onboarding.title")}</h1>
         <p className="onboarding-description">{t("onboarding.description")}</p>
         <div className="onboarding-actions">

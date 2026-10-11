@@ -16,7 +16,7 @@ export const enLocale: LocalePlugin = {
     "sidebar.account": "Account",
     "settings.title": "Settings",
     "onboarding.title": "Welcome to Pi Chat",
-    "onboarding.description": "Pi Chat is a local interface for your AI coding agent. Configure a provider and model to get started.",
+    "onboarding.description": "Use your AI coding agent locally. Configure a provider and model to get started.",
     "onboarding.configure": "Configure now",
     "onboarding.later": "Later",
     "settings.general": "General",
