@@ -24,6 +24,8 @@ export type ServerManagerOptions = {
   stopTimeoutMs?: number;
   fetchImpl?: ServerManagerFetch;
   spawnImpl?: ServerManagerSpawn;
+  onHealthCheck?: (result: { ok: boolean; status?: number; error?: string }) => void;
+  onExit?: (result: { code: number | null; signal: NodeJS.Signals | null; requested: boolean; error?: string }) => void;
 };
 
 const DEFAULT_STARTUP_TIMEOUT_MS = 30_000;
@@ -55,6 +57,7 @@ export class ServerManager {
   private stopPromise: Promise<void> | null = null;
   private lastError: Error | undefined;
   private output = "";
+  private healthReported = false;
 
   constructor(options: ServerManagerOptions) {
     this.options = {
@@ -75,6 +78,7 @@ export class ServerManager {
     this.stopRequested = false;
     this.lastError = undefined;
     this.output = "";
+    this.healthReported = false;
 
     this.startPromise = new Promise<void>((resolve, reject) => {
       let settled = false;
@@ -117,6 +121,12 @@ export class ServerManager {
             `Pi Chat server exited before becoming ready (${signal ? `signal ${signal}` : `code ${code}`})${this.output ? `: ${this.output}` : ""}`,
           );
         }
+        this.notifyExit({
+          code,
+          signal,
+          requested: this.stopRequested,
+          ...(this.lastError ? { error: this.lastError.message } : {}),
+        });
         if (!settled) {
           rejectStart(this.lastError ?? new Error("Pi Chat server exited before starting"));
         }
@@ -140,7 +150,9 @@ export class ServerManager {
 
     while (Date.now() < deadline) {
       if (this.exited) {
-        throw this.lastError ?? new Error("Pi Chat server exited before becoming ready");
+        const error = this.lastError ?? new Error("Pi Chat server exited before becoming ready");
+        this.notifyHealth({ ok: false, error: error.message });
+        throw error;
       }
 
       const remaining = deadline - Date.now();
@@ -149,19 +161,27 @@ export class ServerManager {
         const response = await this.fetchImpl(this.healthUrl(), {
           signal: AbortSignal.timeout(requestTimeout),
         });
-        if (response.ok) return;
+        if (response.ok) {
+          this.notifyHealth({ ok: true, status: response.status });
+          return;
+        }
         lastHealthError = new Error(`Health check returned HTTP ${response.status}`);
       } catch (error) {
         lastHealthError = asError(error);
       }
 
       if (this.exited) {
+        this.notifyHealth({
+          ok: false,
+          error: (this.lastError ?? lastHealthError ?? new Error("Pi Chat server exited before becoming ready")).message,
+        });
         throw this.lastError ?? lastHealthError ?? new Error("Pi Chat server exited before becoming ready");
       }
       await delay(Math.min(POLL_INTERVAL_MS, Math.max(1, deadline - Date.now())));
     }
 
     const detail = lastHealthError?.message ?? this.lastError?.message ?? "no successful health response";
+    this.notifyHealth({ ok: false, error: detail });
     throw new Error(`Timed out waiting for Pi Chat server readiness after ${this.options.startupTimeoutMs}ms: ${detail}`);
   }
 
@@ -216,6 +236,24 @@ export class ServerManager {
 
   private recordOutput(chunk: Buffer | string): void {
     this.output = `${this.output}${chunk.toString()}`.slice(-MAX_OUTPUT_LENGTH).trim();
+  }
+
+  private notifyHealth(result: { ok: boolean; status?: number; error?: string }): void {
+    if (this.healthReported && result.ok) return;
+    this.healthReported = this.healthReported || result.ok;
+    try {
+      this.options.onHealthCheck?.(result);
+    } catch {
+      // Diagnostics must never change server lifecycle behavior.
+    }
+  }
+
+  private notifyExit(result: { code: number | null; signal: NodeJS.Signals | null; requested: boolean; error?: string }): void {
+    try {
+      this.options.onExit?.(result);
+    } catch {
+      // Diagnostics must never change server lifecycle behavior.
+    }
   }
 
   private async waitForExit(child: ChildProcess, timeoutMs: number): Promise<void> {

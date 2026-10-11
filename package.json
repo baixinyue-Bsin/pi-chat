@@ -43,7 +43,7 @@
     "test": "node --experimental-strip-types --test \"app/**/*.test.mjs\" \"components/**/*.test.mjs\" \"hooks/**/*.test.mjs\" \"lib/**/*.test.mjs\" \"public/**/*.test.mjs\"",
     "release": "npm version patch --no-git-tag-version && npm run build && npm publish --access public",
     "desktop:dev": "electron desktop/launcher.cjs",
-    "desktop:pack:mac": "electron-builder --mac dir",
+    "desktop:pack:mac": "electron-builder --mac dir --config desktop/electron-builder.cjs",
     "desktop:test": "node --experimental-strip-types --test \"desktop/**/*.test.mjs\""
   },
   "dependencies": {

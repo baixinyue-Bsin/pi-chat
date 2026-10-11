@@ -1,7 +1,8 @@
 import { createServer } from "node:net";
 import { once } from "node:events";
 import { ServerManager } from "../lib/server-manager";
-import { resolveDesktopPaths, resolveNodeExecutable } from "./paths";
+import { createDesktopLogger, redactDiagnostic, type DesktopLogger } from "./diagnostics";
+import { resolveDesktopPaths, resolveNodeExecutableInfo } from "./paths";
 import { completeOnboarding, readOnboardingState } from "./onboarding-state";
 
 type WindowEvent = (...args: unknown[]) => void;
@@ -46,6 +47,7 @@ export type DesktopOptions = {
   nodeExecutable?: string;
   nextCli?: string;
   agentDirectory?: string;
+  logger?: DesktopLogger;
   createServerManager?: (options: ConstructorParameters<typeof ServerManager>[0]) => ServerManager;
   getFreePort?: (hostname: string) => Promise<number>;
 };
@@ -87,6 +89,9 @@ export async function getFreePort(hostname = "127.0.0.1"): Promise<number> {
 function safeStartupMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   // Keep user-visible errors short and free of credentials or full local paths.
+  if (/Node\.js|node executable|PI_CHAT_NODE_PATH/i.test(message)) {
+    return "Pi Chat 找不到可用的 Node.js。\n请设置 PI_CHAT_NODE_PATH，或在应用资源中提供 Node.js。";
+  }
   if (/timed out/i.test(message)) return "Pi Chat 后端启动超时。\n请确认应用文件完整，然后重新打开应用。";
   if (/enoent|eacces|node(?:\.js)? executable|cannot find module|production build/i.test(message)) {
     return "Pi Chat 尚未准备好。\n请先完成应用构建，或重新安装 Pi Chat。";
@@ -95,13 +100,7 @@ function safeStartupMessage(error: unknown): string {
 }
 
 function safeDiagnostic(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  return message
-    .replace(/(api[-_ ]?key|token|password|authorization|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=<redacted>")
-    .replace(/\b(?:sk|pk)-[A-Za-z0-9_-]+\b/g, "<redacted>")
-    .replace(/(?:\/Users\/|\/home\/)[^\n]*/g, "<path>")
-    .replace(/[A-Za-z]:[\\/][^\n]*/g, "<path>")
-    .slice(0, 2_000);
+  return redactDiagnostic(error);
 }
 
 function localUrl(url: string): string {
@@ -122,7 +121,9 @@ export function createDesktopController(electron: ElectronApi, options: DesktopO
   let stopPromise: Promise<void> | undefined;
   let shutdownPromise: Promise<void> | undefined;
   let startupFailureReported = false;
+  let backendFailureReported = false;
   let windowLoadSucceeded = false;
+  const logger = options.logger ?? createDesktopLogger();
 
   const stop = async (): Promise<void> => {
     if (stopPromise) return stopPromise;
@@ -145,7 +146,9 @@ export function createDesktopController(electron: ElectronApi, options: DesktopO
   const reportStartupFailure = async (error: unknown): Promise<void> => {
     if (startupFailureReported || shutdownPromise) return;
     startupFailureReported = true;
-    console.error("[pi-chat] desktop startup failed:", safeDiagnostic(error));
+    const diagnostic = safeDiagnostic(error);
+    logger.log("startup_failure", { error: diagnostic });
+    console.error("[pi-chat] desktop startup failed:", diagnostic);
     await electron.dialog.showMessageBox({
       type: "error",
       title: "Pi Chat 启动失败",
@@ -155,10 +158,28 @@ export function createDesktopController(electron: ElectronApi, options: DesktopO
     await stopAndQuit();
   };
 
+  const reportBackendFailure = async (error: unknown): Promise<void> => {
+    if (backendFailureReported || shutdownPromise) return;
+    backendFailureReported = true;
+    const diagnostic = safeDiagnostic(error);
+    logger.log("backend_unexpected_exit", { error: diagnostic });
+    await electron.dialog.showMessageBox({
+      type: "error",
+      title: "Pi Chat 后端已退出",
+      message: "Pi Chat 后端意外退出，当前窗口无法继续工作。\n请查看 ~/Library/Logs/Pi Chat/pi-chat.log 后重新打开应用。",
+      buttons: ["退出"],
+    });
+    await stopAndQuit();
+  };
+
   const start = async (): Promise<void> => {
     if (manager && window) return;
     if (startPromise) return startPromise;
     startPromise = (async () => {
+      logger.log("startup", {
+        packaged: Boolean(app.isPackaged),
+        startupTime: new Date().toISOString(),
+      });
       port = options.port ?? await (options.getFreePort ?? getFreePort)(hostname);
       const runtimePaths = resolveDesktopPaths({
         projectRoot: options.projectRoot,
@@ -166,7 +187,26 @@ export function createDesktopController(electron: ElectronApi, options: DesktopO
         isPackaged: app.isPackaged,
         resourcesPath: (process as unknown as { resourcesPath?: string }).resourcesPath,
       });
-      const nodeExecutable = options.nodeExecutable ?? resolveNodeExecutable({ electronVersion: process.versions.electron });
+      let nodeResolution;
+      try {
+        nodeResolution = options.nodeExecutable
+          ? { executable: options.nodeExecutable, source: "environment" as const, candidates: [options.nodeExecutable] }
+          : resolveNodeExecutableInfo({
+              electronVersion: process.versions.electron,
+              isPackaged: Boolean(app.isPackaged),
+              resourcesPath: runtimePaths.resourcesPath,
+            });
+        logger.log("node_lookup", {
+          result: "found",
+          source: nodeResolution.source,
+          path: nodeResolution.executable,
+          candidates: nodeResolution.candidates,
+        });
+      } catch (error) {
+        logger.log("node_lookup", { result: "not_found", error: safeDiagnostic(error) });
+        throw error;
+      }
+      const nodeExecutable = nodeResolution.executable;
       const nextCli = options.nextCli ?? runtimePaths.nextCli;
       const serverOptions = {
         command: nodeExecutable,
@@ -179,7 +219,23 @@ export function createDesktopController(electron: ElectronApi, options: DesktopO
           ...(options.agentDirectory ? { PI_CODING_AGENT_DIR: options.agentDirectory } : {}),
           NEXT_TELEMETRY_DISABLED: "1",
         },
+        onHealthCheck: (result: { ok: boolean; status?: number; error?: string }) => {
+          logger.log(result.ok ? "health_check_success" : "health_check_failure", result);
+        },
+        onExit: (result: { code: number | null; signal: NodeJS.Signals | null; requested: boolean; error?: string }) => {
+          logger.log("backend_exit", result);
+          if (!result.requested && windowLoadSucceeded) {
+            void reportBackendFailure(new Error(result.error ?? `后端退出 (${result.signal ? `signal ${result.signal}` : `code ${result.code}`})`));
+          }
+        },
       };
+      logger.log("backend_start", {
+        command: serverOptions.command,
+        args: serverOptions.args,
+        cwd: serverOptions.cwd,
+        hostname,
+        port,
+      });
       manager = options.createServerManager?.(serverOptions) ?? new ServerManager(serverOptions);
       await manager.waitUntilReady();
 

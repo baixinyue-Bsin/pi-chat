@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createJiti } from "jiti";
 import os from "node:os";
 import path from "node:path";
@@ -8,7 +8,8 @@ import test from "node:test";
 const root = process.cwd();
 const jiti = createJiti(import.meta.url, { tsconfigPaths: true });
 const { createDesktopController, getFreePort } = await jiti.import("./main.ts");
-const { resolveDesktopPaths, resolveNodeExecutable } = await jiti.import("./paths.ts");
+const { resolveDesktopPaths, resolveNodeExecutable, resolveNodeExecutableInfo } = await jiti.import("./paths.ts");
+const { createDesktopLogger, redactDiagnostic } = await jiti.import("./diagnostics.ts");
 
 test("does not use Electron as the backend Node executable", () => {
   assert.equal(resolveNodeExecutable({ env: { PI_CHAT_NODE_PATH: "/custom/node" }, electronVersion: "37" }), "/custom/node");
@@ -16,6 +17,57 @@ test("does not use Electron as the backend Node executable", () => {
     () => resolveNodeExecutable({ env: { PATH: "" }, electronVersion: "37", platform: "darwin", execPath: "/Applications/Electron" }),
     /Node\.js executable not found/,
   );
+});
+
+test("uses the bundled Node runtime before PATH", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "pi-chat-node-resolution-"));
+  const bundled = path.join(directory, "node", "bin", "node");
+  const pathDirectory = path.join(directory, "path");
+  const pathNode = path.join(pathDirectory, "node");
+  await writeFile(bundled, "#!/bin/sh\n", { encoding: "utf8" }).catch(async () => {
+    await mkdir(path.dirname(bundled), { recursive: true });
+    await writeFile(bundled, "#!/bin/sh\n");
+  });
+  await mkdir(pathDirectory, { recursive: true });
+  await writeFile(pathNode, "#!/bin/sh\n");
+  await chmod(bundled, 0o755);
+  await chmod(pathNode, 0o755);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+
+  const bundledResult = resolveNodeExecutableInfo({
+    env: { PATH: pathDirectory },
+    isPackaged: true,
+    resourcesPath: directory,
+    platform: "darwin",
+    electronVersion: "37",
+  });
+  assert.equal(bundledResult.source, "bundled");
+  assert.equal(bundledResult.executable, bundled);
+
+  await rm(path.join(directory, "node"), { recursive: true, force: true });
+  const pathResult = resolveNodeExecutableInfo({
+    env: { PATH: pathDirectory },
+    isPackaged: true,
+    resourcesPath: directory,
+    platform: "darwin",
+    electronVersion: "37",
+  });
+  assert.equal(pathResult.source, "path");
+  assert.equal(pathResult.executable, pathNode);
+});
+
+test("logs diagnostics without credentials or complete user paths", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "pi-chat-diagnostics-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const logger = createDesktopLogger({ directory });
+  logger.log("backend_start", {
+    args: ["/Users/alice/pi agent/pi-web/node", "--api-key=secret-value"],
+    error: "token: bearer-secret /Users/alice/private.txt",
+  });
+  const content = await readFile(path.join(directory, "pi-chat.log"), "utf8");
+  assert.match(content, /<redacted>/);
+  assert.doesNotMatch(content, /secret-value|bearer-secret|\/Users\/alice/);
+  assert.equal(redactDiagnostic("password=secret /Users/alice/file"), "password=<redacted> <user-path>");
 });
 
 test("keeps source and future packaged paths explicit", () => {
@@ -225,6 +277,32 @@ test("startup failure shows an error and never creates a normal window", async (
   await controller.start().catch(() => {});
   assert.equal(windows.length, 0);
   assert.equal(dialogs.length, 1);
+  assert.equal(app.quitCalls, 1);
+});
+
+test("reports an unexpected backend exit after the window opens", async () => {
+  const app = fakeApp();
+  const windows = [];
+  const dialogs = [];
+  let callbacks;
+  const electron = fakeElectron(app, windows, dialogs);
+  const controller = createDesktopController(electron, {
+    getFreePort: async () => 43216,
+    createServerManager: (options) => {
+      callbacks = options;
+      return {
+        async waitUntilReady() {},
+        async stopServer() {},
+        getUrl() { return "http://127.0.0.1:43216"; },
+      };
+    },
+  });
+
+  await controller.start();
+  callbacks.onExit({ code: 1, signal: null, requested: false, error: "server crashed" });
+  await flush();
+  assert.equal(dialogs.length, 1);
+  assert.match(dialogs[0].title, /后端/);
   assert.equal(app.quitCalls, 1);
 });
 
