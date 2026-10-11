@@ -75,8 +75,14 @@ export function resolveNodeExecutableInfo(options: {
   const platform = options.platform ?? process.platform;
   const candidates: string[] = [];
   if (configured) {
-    const executable = isAbsolute(configured) ? normalize(configured) : configured;
-    return { executable, source: "environment", candidates: [executable] };
+    const executable = isAbsolute(configured) ? normalize(configured) : resolve(configured);
+    candidates.push(executable);
+    try {
+      accessSync(executable, constants.X_OK);
+      return { executable, source: "environment", candidates };
+    } catch {
+      // An invalid override must not hide a valid bundled or PATH runtime.
+    }
   }
 
   const packaged = options.isPackaged ?? Boolean(options.resourcesPath);

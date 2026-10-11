@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { createJiti } from "jiti";
 import os from "node:os";
 import path from "node:path";
@@ -10,13 +12,37 @@ const jiti = createJiti(import.meta.url, { tsconfigPaths: true });
 const { createDesktopController, getFreePort } = await jiti.import("./main.ts");
 const { resolveDesktopPaths, resolveNodeExecutable, resolveNodeExecutableInfo } = await jiti.import("./paths.ts");
 const { createDesktopLogger, redactDiagnostic } = await jiti.import("./diagnostics.ts");
+const nodeRuntime = await import("../scripts/download-node-runtime.mjs");
 
-test("does not use Electron as the backend Node executable", () => {
-  assert.equal(resolveNodeExecutable({ env: { PI_CHAT_NODE_PATH: "/custom/node" }, electronVersion: "37" }), "/custom/node");
+test("does not use Electron as the backend Node executable", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "pi-chat-node-env-"));
+  const configured = path.join(directory, "custom node");
+  await writeFile(configured, "#!/bin/sh\n");
+  await chmod(configured, 0o755);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  assert.equal(resolveNodeExecutable({ env: { PI_CHAT_NODE_PATH: configured }, electronVersion: "37" }), configured);
   assert.throws(
-    () => resolveNodeExecutable({ env: { PATH: "" }, electronVersion: "37", platform: "darwin", execPath: "/Applications/Electron" }),
+    () => resolveNodeExecutable({ env: { PI_CHAT_NODE_PATH: "/missing/node", PATH: "" }, electronVersion: "37", platform: "darwin", execPath: "/Applications/Electron" }),
     /Node\.js executable not found/,
   );
+});
+
+test("pins the macOS arm64 runtime download and supports paths containing spaces", () => {
+  assert.equal(nodeRuntime.NODE_VERSION, "22.19.0");
+  assert.equal(nodeRuntime.NODE_ARCHIVE_NAME, "node-v22.19.0-darwin-arm64.tar.gz");
+  assert.equal(nodeRuntime.NODE_SHA256, "c59006db713c770d6ec63ae16cb3edc11f49ee093b5c415d667bb4f436c6526d");
+  assert.match(nodeRuntime.NODE_DOWNLOAD_URL, /node-v22\.19\.0-darwin-arm64\.tar\.gz$/);
+  assert.match(nodeRuntime.targetNode, /pi agent/);
+  assert.match(nodeRuntime.targetNode, /desktop[\\/]node-runtime[\\/]bin[\\/]node$/);
+});
+
+test("loads node-pty with the bundled runtime when it has been downloaded", { skip: !existsSync(nodeRuntime.targetNode) }, () => {
+  const result = spawnSync(nodeRuntime.targetNode, ["-e", "require('node-pty'); process.stdout.write('ok')"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "ok");
 });
 
 test("uses the bundled Node runtime before PATH", async (t) => {
@@ -24,15 +50,28 @@ test("uses the bundled Node runtime before PATH", async (t) => {
   const bundled = path.join(directory, "node", "bin", "node");
   const pathDirectory = path.join(directory, "path");
   const pathNode = path.join(pathDirectory, "node");
+  const configured = path.join(directory, "configured node");
   await writeFile(bundled, "#!/bin/sh\n", { encoding: "utf8" }).catch(async () => {
     await mkdir(path.dirname(bundled), { recursive: true });
     await writeFile(bundled, "#!/bin/sh\n");
   });
   await mkdir(pathDirectory, { recursive: true });
   await writeFile(pathNode, "#!/bin/sh\n");
+  await writeFile(configured, "#!/bin/sh\n");
   await chmod(bundled, 0o755);
   await chmod(pathNode, 0o755);
+  await chmod(configured, 0o755);
   t.after(() => rm(directory, { recursive: true, force: true }));
+
+  const configuredResult = resolveNodeExecutableInfo({
+    env: { PI_CHAT_NODE_PATH: configured, PATH: pathDirectory },
+    isPackaged: true,
+    resourcesPath: directory,
+    platform: "darwin",
+    electronVersion: "37",
+  });
+  assert.equal(configuredResult.source, "environment");
+  assert.equal(configuredResult.executable, configured);
 
   const bundledResult = resolveNodeExecutableInfo({
     env: { PATH: pathDirectory },
@@ -44,6 +83,16 @@ test("uses the bundled Node runtime before PATH", async (t) => {
   assert.equal(bundledResult.source, "bundled");
   assert.equal(bundledResult.executable, bundled);
 
+  const noSystemNodeResult = resolveNodeExecutableInfo({
+    env: { PATH: "" },
+    isPackaged: true,
+    resourcesPath: directory,
+    platform: "darwin",
+    electronVersion: "37",
+  });
+  assert.equal(noSystemNodeResult.source, "bundled");
+  assert.equal(noSystemNodeResult.executable, bundled);
+
   await rm(path.join(directory, "node"), { recursive: true, force: true });
   const pathResult = resolveNodeExecutableInfo({
     env: { PATH: pathDirectory },
@@ -54,6 +103,15 @@ test("uses the bundled Node runtime before PATH", async (t) => {
   });
   assert.equal(pathResult.source, "path");
   assert.equal(pathResult.executable, pathNode);
+
+  const developmentResult = resolveNodeExecutableInfo({
+    env: { PATH: pathDirectory },
+    isPackaged: false,
+    platform: "darwin",
+    electronVersion: "37",
+  });
+  assert.equal(developmentResult.source, "path");
+  assert.equal(developmentResult.executable, pathNode);
 });
 
 test("logs diagnostics without credentials or complete user paths", async (t) => {

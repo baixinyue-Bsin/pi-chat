@@ -21,6 +21,12 @@
 # production
 /build
 
+# packaged macOS runtime (the README remains tracked)
+/desktop/node-runtime/*
+!/desktop/node-runtime/README.md
+/.cache/pi-chat-node/
+/dist/mac-arm64/Pi Chat.app/Contents/Resources/node/
+
 # misc
 .DS_Store
 *.pem
