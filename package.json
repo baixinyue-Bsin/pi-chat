@@ -46,7 +46,9 @@
     "desktop:dev": "electron desktop/launcher.cjs",
     "desktop:download-node": "node scripts/download-node-runtime.mjs",
     "desktop:pack:mac": "npm run desktop:download-node && electron-builder --mac dir --config desktop/electron-builder.cjs",
+    "desktop:pack:mac:dmg": "npm run desktop:download-node && electron-builder --mac dmg --config desktop/electron-builder.cjs",
     "desktop:release:mac": "npm run build && npm run desktop:pack:mac",
+    "desktop:release:mac:dmg": "npm run build && npm run desktop:pack:mac:dmg",
     "desktop:test": "node --experimental-strip-types --test \"desktop/**/*.test.mjs\""
   },
   "dependencies": {
@@ -134,6 +136,10 @@
       "target": [
         "dir"
       ]
+    },
+    "dmg": {
+      "artifactName": "Pi-Chat-${version}-${arch}.dmg",
+      "writeUpdateInfo": false
     }
   }
 }
