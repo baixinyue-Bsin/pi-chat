@@ -17,6 +17,7 @@
   "bin": {
     "pi-chat": "bin/pi-chat.js"
   },
+  "main": "desktop/launcher.cjs",
   "files": [
     "bin",
     ".env.example",
@@ -42,6 +43,7 @@
     "test": "node --experimental-strip-types --test \"app/**/*.test.mjs\" \"components/**/*.test.mjs\" \"hooks/**/*.test.mjs\" \"lib/**/*.test.mjs\" \"public/**/*.test.mjs\"",
     "release": "npm version patch --no-git-tag-version && npm run build && npm publish --access public",
     "desktop:dev": "electron desktop/launcher.cjs",
+    "desktop:pack:mac": "electron-builder --mac dir",
     "desktop:test": "node --experimental-strip-types --test \"desktop/**/*.test.mjs\""
   },
   "dependencies": {
@@ -55,6 +57,7 @@
     "js-yaml": "^5.2.3",
     "next": "16.3.5",
     "node-pty": "1.2.0-beta.15",
+    "jiti": "^2.7.0",
     "proper-lockfile": "4.1.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -77,7 +80,6 @@
     "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
-    "jiti": "^2.7.0",
     "katex": "^0.16.47",
     "mammoth": "^1.12.0",
     "mermaid": "^11.16.1",
@@ -92,5 +94,43 @@
     "remark-math": "^6.0.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.pi-chat.app",
+    "productName": "Pi Chat",
+    "asar": false,
+    "electronDist": "node_modules/electron/dist",
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "components/**/*",
+      "hooks/**/*",
+      "lib/**/*",
+      "bin/**/*",
+      "desktop/**/*",
+      "public/**/*",
+      ".next/**/*",
+      "!.next/cache/**/*",
+      "!.next/dev/**/*",
+      "!.next/**/*.js.map",
+      "next.config.ts",
+      "package.json",
+      "!**/.env",
+      "!**/.env.*",
+      "!**/node_modules/.cache/**/*",
+      "!**/test-results/**/*",
+      "!**/playwright-report/**/*"
+    ],
+    "mac": {
+      "icon": "desktop/assets/macos/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dir"
+      ]
+    }
   }
 }
