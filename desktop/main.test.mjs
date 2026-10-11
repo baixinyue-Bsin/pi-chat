@@ -153,6 +153,8 @@ function fakeElectron(app, windows, dialogs = [], loadURLBehavior) {
   class FakeWindow {
     constructor(options) {
       this.options = options;
+      this.title = options.title;
+      this.setTitleCalls = [];
       this.listeners = new Map();
       this.webContents = {
         listeners: new Map(),
@@ -160,6 +162,10 @@ function fakeElectron(app, windows, dialogs = [], loadURLBehavior) {
         setWindowOpenHandler: () => {},
       };
       windows.push(this);
+    }
+    setTitle(title) {
+      this.title = title;
+      this.setTitleCalls.push(title);
     }
     async loadURL(url) {
       this.loadedUrl = url;
@@ -209,6 +215,9 @@ test("selects a random loopback port and waits for health before creating the wi
   await start;
   assert.equal(managerCalls[1], "ready");
   assert.equal(windows.length, 1);
+  assert.equal(windows[0].options.title, "");
+  assert.deepEqual(windows[0].setTitleCalls, ["", ""]);
+  assert.equal(windows[0].title, "");
   assert.equal(windows[0].loadedUrl, "http://127.0.0.1:43210/");
   assert.equal(windows[0].options.webPreferences.contextIsolation, true);
   assert.equal(windows[0].options.webPreferences.nodeIntegration, false);
@@ -218,6 +227,38 @@ test("selects a random loopback port and waits for health before creating the wi
   assert.equal(managerCalls.filter((entry) => typeof entry === "object").length, 1);
   await controller.stop();
   assert.deepEqual(managerCalls.slice(-1), ["stop"]);
+});
+
+test("keeps the native macOS title bar blank when the page title changes", async () => {
+  const app = fakeApp();
+  const windows = [];
+  const electron = fakeElectron(app, windows);
+  const controller = createDesktopController(electron, {
+    getFreePort: async () => 43217,
+    createServerManager: () => ({
+      async waitUntilReady() {},
+      async stopServer() {},
+      getUrl() { return "http://127.0.0.1:43217"; },
+    }),
+  });
+
+  await controller.start();
+  let prevented = false;
+  windows[0].webContents.listeners.get("page-title-updated")?.({
+    preventDefault() { prevented = true; },
+  }, "pi-cwd-20260908 - Pi Chat");
+  assert.equal(prevented, true);
+  assert.equal(windows[0].options.title, "");
+  assert.deepEqual(windows[0].setTitleCalls, ["", "", ""]);
+  assert.equal(windows[0].title, "");
+  assert.equal(windows[0].loadedUrl, "http://127.0.0.1:43217/");
+  await controller.stop();
+});
+
+test("keeps the Pi Chat application identity unchanged", async () => {
+  const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  assert.equal(packageJson.build.productName, "Pi Chat");
+  assert.equal(packageJson.build.appId, "com.pi-chat.app");
 });
 
 test("window close, window-all-closed, and before-quit share one shutdown", async () => {

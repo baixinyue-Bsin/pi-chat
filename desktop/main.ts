@@ -19,6 +19,7 @@ export type ElectronApi = {
     exit?(code?: number): void;
   };
   BrowserWindow: new (options: Record<string, unknown>) => {
+    setTitle(title: string): void;
     loadURL(url: string): Promise<void>;
     on(event: string, listener: WindowEvent): void;
     once?(event: string, listener: WindowEvent): void;
@@ -241,7 +242,8 @@ export function createDesktopController(electron: ElectronApi, options: DesktopO
 
       const serverUrl = localUrl(manager.getUrl());
       window = new electron.BrowserWindow({
-          width: 1440,
+        title: "",
+        width: 1440,
         height: 900,
         minWidth: 960,
         minHeight: 640,
@@ -253,6 +255,11 @@ export function createDesktopController(electron: ElectronApi, options: DesktopO
           webSecurity: true,
         },
       });
+      window.setTitle("");
+      window.webContents?.on?.("page-title-updated", (event: unknown) => {
+        (event as { preventDefault?: () => void }).preventDefault?.();
+        window?.setTitle("");
+      });
       window.webContents?.setWindowOpenHandler?.(() => ({ action: "deny" }));
       window.webContents?.on?.("did-fail-load", (...args: unknown[]) => {
         if (args[4] === true && !windowLoadSucceeded) {
@@ -261,6 +268,8 @@ export function createDesktopController(electron: ElectronApi, options: DesktopO
       });
       window.once?.("closed", () => { void stopAndQuit(); });
       await window.loadURL(serverUrl);
+      // Keep the native macOS title blank even if the page sets document.title during load.
+      window.setTitle("");
       windowLoadSucceeded = true;
       window.show?.();
     })().catch(async (error) => {
