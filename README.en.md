@@ -233,6 +233,16 @@ npm run lint
 
 For advanced environment variables, HTTP proxy settings, remote access and HTTPS, Git worktrees, and extension integration, see [Advanced configuration](./docs/advanced-configuration.md). Contributors can also read [Internationalization](./docs/i18n.md), [Release process](./docs/release.md), [Worktrees in Pi Chat](./docs/worktrees.md), and the Chinese guide [Pi Chat 里的 Worktree](./docs/worktrees.zh-CN.md).
 
+## Project origin and maintenance scope
+
+Pi Chat is a customized local desktop application built on the open-source foundation of Pi Web. While the repository retains the upstream code and Git history, this project focuses on productizing and maintaining the following areas:
+
+- Electron desktop packaging and Apple Silicon macOS releases.
+- Integration of local sessions, project management, file preview, model configuration, Skills, and Plugins.
+- macOS installation compatibility, release documentation, testing, and ongoing iteration.
+
+The Contributors count shown on this repository includes contributors from the upstream Pi Web Git history. Those contributors belong to the upstream project and do not represent a team of the same size currently maintaining Pi Chat. We thank the upstream project and its contributors for the open-source foundation.
+
 ## License
 
 Pi Chat is distributed under the [MIT License](./LICENSE).

@@ -233,6 +233,16 @@ npm run lint
 
 高级环境变量、HTTP 代理、远程访问和 HTTPS、Git worktree、扩展集成等内容请参阅[高级配置](./docs/advanced-configuration.md)。贡献者还可以阅读[国际化](./docs/i18n.md)、[发布流程](./docs/release.md)、[Pi Chat 里的 Worktree](./docs/worktrees.zh-CN.md)和英文版 [Worktrees in Pi Chat](./docs/worktrees.md)。
 
+## 项目来源与维护范围
+
+Pi Chat 基于 Pi Web 的开源代码基础进行二次开发，定位为面向个人用户的本地桌面应用。项目在继承上游代码和 Git 历史的同时，重点围绕以下内容进行产品化和维护：
+
+- Electron 桌面端封装，以及 Apple Silicon macOS 安装包发布。
+- 本地会话、项目管理、文件预览、模型配置、Skills 和 Plugins 等功能的整合。
+- macOS 安装兼容性、发布文档、测试和持续迭代。
+
+仓库页面显示的 Contributors 包含上游 Pi Web Git 历史中的贡献者。这些贡献者归属于上游项目，并不代表 Pi Chat 当前由同等规模的团队维护。感谢上游项目及其贡献者提供的开源基础。
+
 ## 开源许可
 
 Pi Chat 遵循 [MIT License](./LICENSE)。
