@@ -71,22 +71,23 @@ Open [Pi Chat GitHub Releases](https://github.com/bsin-ai/pi-chat/releases), the
 
 [Direct download: Pi-Chat-1.1.0-arm64.dmg](https://github.com/bsin-ai/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
 
-[![Pi Chat DMG download](./docs/assets/pi-chat-dmg.png)](https://github.com/bsin-ai/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
-
 ### 3. Drag the app to Applications
 
 Open the downloaded DMG, drag **Pi Chat** to the **Applications** folder, and launch Pi Chat from Applications. A normal DMG installation does not require Node.js.
 
 ![Drag Pi Chat to Applications](./docs/assets/pi-chat-install.png)
 
-### 4. Handle the macOS security warning
+### 4. Handle the macOS security warning on first launch
 
-The current version has not completed Apple Developer signing and notarization, so macOS may show an unidentified-developer warning the first time you open it:
+The current version has not completed Apple Developer signing and notarization. Because macOS checks applications downloaded from the internet, the first launch may show an “unidentified developer” or “app is damaged” warning.
 
-1. In Applications, Control-click **Pi Chat**, choose **Open**, and confirm that you want to open it.
-2. If macOS still blocks it, open **System Settings > Privacy & Security** and choose **Open Anyway** next to the Pi Chat warning.
+First confirm that the app was downloaded from this project's official [GitHub Releases](https://github.com/bsin-ai/pi-chat/releases) page and dragged to **Applications**. Then open Terminal and run:
 
-If the system warning does not match the download source, cancel and download the app again from the trusted [GitHub Releases](https://github.com/bsin-ai/pi-chat/releases) page.
+```bash
+xattr -dr com.apple.quarantine "/Applications/Pi Chat.app"
+```
+
+After the command finishes, return to Applications and double-click **Pi Chat** to launch it. This command only removes macOS's quarantine attribute for this app; do not run it for applications from unknown sources.
 
 ## First Launch
 

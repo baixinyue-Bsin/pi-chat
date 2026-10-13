@@ -71,22 +71,23 @@ Pi Chat 适合处理需要阅读资料、整理信息或持续推进的工作，
 
 [直接下载 Pi-Chat-1.1.0-arm64.dmg](https://github.com/bsin-ai/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
 
-[![Pi Chat DMG 下载](./docs/assets/pi-chat-dmg.png)](https://github.com/bsin-ai/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
-
 ### 3. 将应用拖入“应用程序”
 
 打开下载的 DMG，把 **Pi Chat** 拖到 **Applications（应用程序）** 文件夹，然后从“应用程序”中启动 Pi Chat。普通用户安装 DMG 不需要 Node.js。
 
 ![将 Pi Chat 拖入应用程序](./docs/assets/pi-chat-install.png)
 
-### 4. 处理 macOS 安全提示
+### 4. 首次打开时处理 macOS 安全提示
 
-当前版本尚未完成 Apple Developer 签名和公证，因此 macOS 第一次打开时可能显示无法验证开发者的提示：
+当前版本尚未完成 Apple Developer 签名和公证。由于 macOS 会对从互联网下载的应用进行安全检查，首次打开 Pi Chat 时可能显示“无法验证开发者”或“应用已损坏”等提示。
 
-1. 在“应用程序”中按住 Control 键点击 **Pi Chat**，选择 **打开**，再确认打开。
-2. 如果仍被拦截，打开“系统设置 > 隐私与安全性”，在 Pi Chat 的提示旁选择 **仍要打开**。
+请确认应用来自本项目官方 [GitHub Releases](https://github.com/bsin-ai/pi-chat/releases) 页面，并已将 **Pi Chat** 拖入“应用程序”。然后打开“终端”，粘贴并执行以下命令：
 
-如果系统提示与下载来源不一致，请取消操作，并重新从可信的 [GitHub Releases](https://github.com/bsin-ai/pi-chat/releases) 页面下载。
+```bash
+xattr -dr com.apple.quarantine "/Applications/Pi Chat.app"
+```
+
+命令执行完成后，回到“应用程序”文件夹，再次双击 **Pi Chat** 即可启动。该命令仅移除 macOS 对此应用的下载隔离标记；请勿对来源不明的应用执行此操作。
 
 ## 第一次使用
 
