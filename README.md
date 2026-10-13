@@ -69,7 +69,9 @@ Pi Chat 适合处理需要阅读资料、整理信息或持续推进的工作，
 
 打开 [Pi Chat GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases)，在最新 Release 的 **Assets** 区域点击 `Pi-Chat-1.1.0-arm64.dmg` 下载 Apple Silicon 安装包。只从可信的 GitHub Releases 页面下载；如果文件名不同，请选择 Release 中实际提供的 `.dmg` 文件。
 
-[![Pi Chat DMG 下载](./docs/assets/pi-chat-dmg.png)](https://github.com/baixinyue-Bsin/pi-chat/releases)
+[直接下载 Pi-Chat-1.1.0-arm64.dmg](https://github.com/baixinyue-Bsin/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
+
+[![Pi Chat DMG 下载](./docs/assets/pi-chat-dmg.png)](https://github.com/baixinyue-Bsin/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
 
 ### 3. 将应用拖入“应用程序”
 

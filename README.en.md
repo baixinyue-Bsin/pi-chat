@@ -69,7 +69,9 @@ The current desktop release mainly supports **Apple Silicon** Macs, including M1
 
 Open [Pi Chat GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases), then click `Pi-Chat-1.1.0-arm64.dmg` in the latest release's **Assets** section to download the Apple Silicon installer. Download only from a trusted GitHub Releases page; if the filename differs, choose the `.dmg` file actually provided by that release.
 
-[![Pi Chat DMG download](./docs/assets/pi-chat-dmg.png)](https://github.com/baixinyue-Bsin/pi-chat/releases)
+[Direct download: Pi-Chat-1.1.0-arm64.dmg](https://github.com/baixinyue-Bsin/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
+
+[![Pi Chat DMG download](./docs/assets/pi-chat-dmg.png)](https://github.com/baixinyue-Bsin/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
 
 ### 3. Drag the app to Applications
 
