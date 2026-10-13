@@ -2,22 +2,206 @@
 
 [简体中文](./README.zh-CN.md)
 
-Local browser UI for the [pi coding agent](https://github.com/earendil-works/pi). Pi Chat uses the same local configuration and session files as pi.
+[![CI](https://github.com/baixinyue-Bsin/pi-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/baixinyue-Bsin/pi-chat/actions/workflows/ci.yml)
 
-![Pi Chat displaying a pi session with structured Markdown, tool calls, and project navigation](./docs/screenshot2.png)
+![Pi Chat cover](./docs/assets/pi-chat-cover.png)
 
-## Features
+**A lightweight AI work assistant for Mac users**
 
-- **Session workspace**: browse, resume, rename, export, and delete conversations grouped by project, with running state, context usage, cost, and compaction details.
-- **Two ways to branch**: **New session** creates an independent session file from an earlier message; **Edit from here** creates a branch inside the current session.
-- **Project file tools**: browse and upload files, inspect Git diffs, and preview source, Markdown, images, audio, PDFs, and DOCX files with automatic refresh.
-- **Git worktrees**: switch checkouts from the sidebar while keeping sessions from the same repository grouped together.
-- **Web-based configuration**: manage provider login and API keys, models, model tests, plugin packages, and skills in Pi Chat.
-- **English and Simplified Chinese UI**: Pi Chat follows the browser language initially and provides a language switcher in the settings panel.
+Pi Chat puts projects, conversations, files, and Skills in one desktop app. After you configure a model, you can start tasks in natural language like you would in any other Mac app, without learning or operating pi Agent's command-line workflow.
+
+## Table of contents
+
+- [What is Pi Chat](#what-is-pi-chat)
+- [What Pi Chat Can Do](#what-pi-chat-can-do)
+- [Download and Install](#download-and-install)
+- [First Launch](#first-launch)
+- [Main Features](#main-features)
+- [Privacy and Security](#privacy-and-security)
+- [Frequently Asked Questions](#frequently-asked-questions)
+- [Current Limitations](#current-limitations)
+- [Run from Source](#run-from-source)
+- [License](#license)
+
+## What is Pi Chat
+
+Pi Chat is a lightweight AI work assistant for Mac users and a local desktop interface for the [pi coding agent](https://github.com/earendil-works/pi). It puts projects, conversations, files, and Skills in one app, so you can choose your own model provider, API key, and model, then describe a task in everyday language.
+
+Pi Chat does not provide an AI model itself. You connect a model provider of your choice and follow that provider's pricing, quota, and usage rules.
+
+### Core value
+
+Pi Chat is designed to make everyday work more direct in these ways:
+
+- Reduce tool setup so you can start in one desktop app.
+- Reduce repeated input and unnecessary context, helping reduce unnecessary token usage.
+- Help the model stay focused on the current task and the material you provide.
+- Replace complicated command-line operations with a desktop interface.
+
+### Who is it for
+
+- People who want to use an AI assistant on their own Mac without first learning a complex command-line workflow.
+- People who need to organize material, process documents, analyze projects, or keep several tasks moving.
+- People who want local project and conversation management while connecting different model providers as needed.
+- Developers can run and extend Pi Chat from source, but everyday use does not require programming skills.
+
+## What Pi Chat Can Do
+
+Pi Chat is useful for work that involves reading material, organizing information, or making steady progress, such as:
+
+- Organizing and analyzing meeting notes, research material, and other text.
+- Reading and processing Word, PDF, Excel, PPT, Markdown, and plain-text files.
+- Assisting with code and project tasks, understanding project content, and reviewing changes.
+- Previewing source code, Markdown, images, audio, PDF, and DOCX files.
+- Viewing Git Diff to understand what changed in a file.
+- Managing multiple projects and conversation history, then continuing work by project.
+- Continuing an existing conversation or creating a branch to try another direction.
+
+![Pi Chat workspace](./docs/assets/pi-chat-main.png)
+
+## Download and Install
+
+### 1. Check your Mac chip
+
+The current desktop release mainly supports **Apple Silicon** Macs, including M1, M2, M3, M4, and later models. Intel Macs are not currently supported.
+
+### 2. Download a DMG from GitHub Releases
+
+Open [Pi Chat GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases) and download the latest `.dmg` installer. Download only from a trusted GitHub Releases page.
+
+![Pi Chat DMG download](./docs/assets/pi-chat-dmg.png)
+
+### 3. Drag the app to Applications
+
+Open the downloaded DMG, drag **Pi Chat** to the **Applications** folder, and launch Pi Chat from Applications. A normal DMG installation does not require Node.js.
+
+![Drag Pi Chat to Applications](./docs/assets/pi-chat-install.png)
+
+### 4. Handle the macOS security warning
+
+The current version has not completed Apple Developer signing and notarization, so macOS may show an unidentified-developer warning the first time you open it:
+
+1. In Applications, Control-click **Pi Chat**, choose **Open**, and confirm that you want to open it.
+2. If macOS still blocks it, open **System Settings > Privacy & Security** and choose **Open Anyway** next to the Pi Chat warning.
+
+If the system warning does not match the download source, cancel and download the app again from the trusted [GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases) page.
+
+## First Launch
+
+![Pi Chat settings panel](./docs/assets/pi-chat-settings.png)
+
+### 1. Configure a model and API key
+
+Open the **Models** panel, add a Provider, enter an API key, and choose a model. If the provider supports it, you can use its sign-in flow instead. Before sending sensitive or large content, check the provider's pricing, quota, billing, and data-retention rules.
+
+An API key is sensitive information. Keep it private, and never publish it, commit it to a repository, or share it in a screenshot.
+
+### 2. Install commonly used Skills
+
+Skills add capabilities for specific tasks. Install them as needed from the **Skills** panel and choose their scope:
+
+| Skill | Useful for |
+| --- | --- |
+| `docx` | Reading and processing Word documents |
+| `pdf` | Reading and processing PDFs |
+| `xlsx` | Working with Excel spreadsheets |
+| `pptx` | Reading and editing presentations |
+| `markitdown` | Converting material to Markdown |
+| `tavily-search` | Searching the web |
+
+You do not need to install every Skill at once. Start with the capability required for the current task and add more for later projects or work. A Skill can apply to all projects or only to the current project.
+
+### 3. Start your first conversation
+
+Create or choose a project, describe your goal in the chat box using natural language, and attach or browse relevant files when needed. When a task changes a file, review the result and the changes in the app before accepting them.
+
+## Main Features
+
+### 1. Start a task directly in natural language
+
+Describe what you want to accomplish. Pi Chat uses the current project and conversation context to help organize, analyze, find, or change content. You do not need to remember commands or internal directories.
+
+### 2. Organize work with projects, titles, and pins
+
+Keep a conversation in the right project, give important tasks a title, and pin them so you can return to work in progress. Projects and conversations can be managed separately, which helps when you work on several topics at once.
+
+### 3. Find conversations by activity or project
+
+Use the sidebar to view recent activity or browse conversation history by project. This makes it easy to return to a task you used recently or to a project's longer-running work.
+
+### 4. Review task progress, results, context, and cost
+
+While a task is running, you can follow its progress and process. After it finishes, you can review the result, context used, cost, and related run information. Pi Chat also supports file previews and Git Diff so you can check the changes the model proposed.
+
+### 5. Navigate long conversations with chat navigation
+
+When a conversation becomes long, chat navigation helps you jump to different messages and stages of the task instead of repeatedly scrolling through the whole page.
+
+### 6. Continue tasks, create branches, and export conversations
+
+Continue an existing conversation, create an independent branch from an earlier message, or try another direction from a point in the current conversation. Export the conversation when you need to keep a record or share it.
+
+### 7. Customize the interface and language
+
+Pi Chat supports English and Simplified Chinese and provides appearance settings. It initially follows your browser language, and you can switch the language and appearance at any time.
+
+## Privacy and Security
+
+- Pi Chat runs on your own Mac. Conversations and some app settings are stored locally by default.
+- Reinstalling the app normally does not delete existing conversations. Conversations do not automatically follow you to another Mac, so back them up or migrate them yourself.
+- When you use an AI model, your input may be sent to the model provider you choose. Review that provider's privacy policy, data-retention rules, pricing, and quotas first.
+- A Skill may call an external service. Before processing sensitive files, confirm which services the Skill uses and whether the files will leave your Mac.
+- API keys are sensitive information. Do not publish them, commit them to a repository, or share them in screenshots.
+- Pi Chat does not provide an AI model itself. Model fees and service terms are determined by the provider you choose.
+- Sharing the Pi Chat app does not automatically share conversations, API keys, or personal settings. Other users need to configure their own model service on their own Mac.
+
+## Frequently Asked Questions
+
+### Do I need to install Node.js?
+
+A normal DMG installation does not require Node.js. Node.js **22.19.0 or newer** is needed only when running from source or contributing to development.
+
+### Do I need programming skills?
+
+Everyday use does not require programming skills. You can describe tasks in natural language; running from source and contributing to development require basic command-line knowledge.
+
+### Is Pi Chat free?
+
+The Pi Chat project uses the MIT License, and the app itself does not charge a usage fee. A model service may require an API key, and model costs are determined by the provider you choose.
+
+### Where are conversations stored?
+
+Conversations are stored on your Mac by default.
+
+### Will reinstalling delete my conversations?
+
+Reinstalling the app normally does not delete existing conversations. Deleting user data, cleaning it up manually, or changing the runtime environment can cause data loss, so back up important conversations first.
+
+### How do I update Pi Chat?
+
+The current version does not support automatic updates. Download a new DMG from [GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases) and replace the old app in Applications.
+
+## Current Limitations
+
+- The app currently supports macOS only.
+- It mainly supports Apple Silicon and does not currently support Intel Macs.
+- Linux is not currently supported.
+- There is no App Store version yet.
+- The current version has not completed Apple Developer signing and notarization, so macOS may show a security warning on first launch.
+- Automatic updates are not currently supported.
+- A model service may require an API key and may charge for usage.
 
 ## Run from Source
 
-Pi Chat requires Node.js 22.19.0 or newer. Check your version with `node --version`, then run:
+This section is for developers; normal DMG users can skip it. Normal users do not need Node.js. Node.js **22.19.0 or newer** is needed only when running from source or contributing to development.
+
+Check your version first:
+
+```bash
+node --version
+```
+
+Install and run:
 
 ```bash
 git clone https://github.com/baixinyue-Bsin/pi-chat.git
@@ -27,130 +211,16 @@ npm run build
 npm start
 ```
 
-Open [http://127.0.0.1:30141](http://127.0.0.1:30141). On first use, configure your own provider and API key in the **Models** panel. User data is stored in `~/.pi/agent` by default. Never commit your `.env`, API keys, or session data to this repository.
+After starting the app, open [http://127.0.0.1:30141](http://127.0.0.1:30141), then configure your Provider, API key, and model in **Models**.
 
-## Open-source notice
-
-Pi Chat is distributed under the MIT License. See [LICENSE](./LICENSE) for the original license and copyright notices.
-
-## Configuration
-
-For port and hostname, command-line options override the corresponding environment variables. Either `--no-open` or `PI_WEB_NO_OPEN=1` disables automatic browser opening. Run `pi-chat --help` (or `-h`) to print startup options and exit without starting the server. Unknown options exit with an error.
-
-| Option or environment variable | Purpose | Default |
-| --- | --- | --- |
-| `--help`, `-h` | Print startup options and exit | — |
-| `--port <port>`, `-p <port>`, or `PORT` | Server port | `30141` |
-| `--hostname <host>`, `-H <host>`, or `PI_WEB_HOSTNAME` | Bind hostname | `127.0.0.1` |
-| `--no-open` or `PI_WEB_NO_OPEN=1` | Do not open a browser automatically | Browser opens |
-| `PI_WEB_SKIP_VERSION_CHECK=1` | Disable Pi Chat update checks | Unset |
-| `PI_WEB_ALLOWED_HOSTS` | Additional exact proxy or custom hostnames, comma-separated | Unset |
-| `PI_WEB_PASSWORD` | Enable browser password login; API clients may use Basic Auth with username `pi` | Authentication disabled |
-| `PI_WEB_IDLE_TIMEOUT_MS` | Session idle timeout in milliseconds, up to `2147483647`; `0` disables idle shutdown; invalid or out-of-range values use the default | `600000` (10 min) |
-
-For example:
+Development mode:
 
 ```bash
-pi-chat --help
-pi-chat -p 8080 -H 0.0.0.0 --no-open
-```
-
-### Remote Access
-
-Binding to a non-loopback address exposes an agent that can execute high-privilege actions. On a trusted LAN, require a long random password:
-
-```bash
-PI_WEB_PASSWORD='a-long-random-password' pi-chat --hostname 0.0.0.0
-```
-
-Password authentication does not encrypt the connection. Do not expose Pi Chat over plain HTTP to the internet; use HTTPS through a trusted reverse proxy or a trusted VPN. If a reverse proxy sends an external hostname, add that exact name to `PI_WEB_ALLOWED_HOSTS`. This allow-list does not change the address Pi Chat binds to.
-
-### HTTP Proxy
-
-Server-side model and API requests honor the standard `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables.
-
-On macOS or Linux:
-
-```bash
-HTTP_PROXY=http://127.0.0.1:7890 \
-HTTPS_PROXY=http://127.0.0.1:7890 \
-NO_PROXY=localhost,127.0.0.1 \
-npm start
-```
-
-On Windows PowerShell:
-
-```powershell
-$env:HTTP_PROXY = "http://127.0.0.1:7890"
-$env:HTTPS_PROXY = "http://127.0.0.1:7890"
-$env:NO_PROXY = "localhost,127.0.0.1"
-npm start
-```
-
-## Notes
-
-- **Agent data**: Pi Chat reads pi data from `~/.pi/agent` by default, including session files under `sessions/<encoded-cwd>/<timestamp>_<uuid>.jsonl`. Set `PI_CODING_AGENT_DIR` to use another pi agent directory.
-- **Filesystem access**: Pi Chat must be able to read the agent data directory and the working directories recorded by its sessions. Run Pi Chat in the same filesystem environment as pi when sharing existing sessions.
-- **Shared configuration**: the Models panel uses pi's model, settings, and credential storage, so changes are visible to both interfaces.
-- **File access boundary**: the file browser is limited to working directories selected in Pi Chat and project or session roots it already knows about; it is not a general filesystem browser.
-- **Git worktrees**: see [Worktrees in Pi Chat](./docs/worktrees.md) for switcher visibility, worktree creation, and removal behavior.
-
-### Downstream Session Context Menu
-
-Electron wrappers and other downstream integrations can provide a session-row
-context menu without patching `SessionSidebar`. Listen for the cancelable
-`pi-web:session-row-contextmenu` browser event and call `preventDefault()`
-synchronously when the integration will handle it:
-
-```js
-window.addEventListener("pi-web:session-row-contextmenu", (event) => {
-  event.preventDefault();
-  const { id, path, cwd, name, clientX, clientY, refresh } = event.detail;
-
-  void openSessionMenu({ id, path, cwd, name, clientX, clientY }).then((changed) => {
-    if (changed) refresh();
-  });
-});
-```
-
-The detail object contains `id`, `path`, `cwd`, optional `name`, pointer
-coordinates, and a `refresh()` callback for actions that change the session
-list. If no listener cancels the extension event, Pi Chat preserves the
-browser's native context menu. This hook is browser-side and independent of
-Pi agent extensions.
-
-### Extension Session Liveness
-
-Server-side Pi extensions with detached work can prevent automatic idle
-session eviction through the versioned global registry:
-
-```js
-const liveness = globalThis[Symbol.for("@agegr/pi-web/session-liveness/v1")];
-const release = liveness?.version === 1
-  ? liveness.register({
-      name: "my-extension",
-      sessionId,
-      sessionFile: sessionFile || undefined,
-      isActive: () => detachedJobs.size > 0,
-    })
-  : () => {};
-```
-
-Register once per active extension session and call the returned idempotent
-`release` function on session shutdown, replacement, or reload. `isActive`
-must be synchronous, cheap, and scoped to the supplied exact session id or
-file. Provider errors fail safe by preserving that session. This lease only
-affects automatic idle eviction; explicit shutdown and Stop fallback cleanup
-still take precedence.
-
-## Development
-
-```bash
-npm install
+npm ci
 npm run dev
 ```
 
-The development server runs at [http://127.0.0.1:30141](http://127.0.0.1:30141). Run the common checks with:
+Common checks:
 
 ```bash
 npm test
@@ -158,24 +228,8 @@ node_modules/.bin/tsc --noEmit
 npm run lint
 ```
 
-Do not run `next build` or `npm run build` during normal development. It writes to `.next/` and can interfere with the development server; leave builds for release work.
-
-Contributor guides: [Internationalization](./docs/i18n.md) and [Release process](./docs/release.md).
-
-## Repository Layout
-
-```text
-app/             Next.js UI and API routes
-components/      React UI components
-hooks/           Client state and interaction hooks
-lib/             Session, agent, model, file, Git, and security logic
-public/          Static assets and PWA files
-bin/             npm CLI entrypoint and launch option parsing
-docs/            Focused user and contributor guides
-```
-
-See [AGENTS.md](./AGENTS.md) for the architecture notes and detailed file map.
+For advanced environment variables, HTTP proxy settings, remote access and HTTPS, Git worktrees, and extension integration, see [Advanced configuration](./docs/advanced-configuration.md). Contributors can also read [Internationalization](./docs/i18n.md), [Release process](./docs/release.md), [Worktrees in Pi Chat](./docs/worktrees.md), and the Chinese guide [Pi Chat 里的 Worktree](./docs/worktrees.zh-CN.md).
 
 ## License
 
-[MIT](./LICENSE)
+Pi Chat is distributed under the [MIT License](./LICENSE).
