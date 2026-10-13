@@ -3,7 +3,7 @@
 This repo publishes two artifacts for each release:
 
 - npm package: `pi-chat`
-- GitHub Release: `baixinyue-Bsin/pi-chat`
+- GitHub Release: `bsin-ai/pi-chat`
 
 Use this checklist from a clean `main` checkout.
 
@@ -67,7 +67,7 @@ Confirm the tag does not already exist before creating it when unsure:
 
 ```bash
 git ls-remote --tags origin v<version>
-gh release view v<version> --repo baixinyue-Bsin/pi-chat
+gh release view v<version> --repo bsin-ai/pi-chat
 ```
 
 ## 5. Generate Release Notes from Commits
@@ -132,7 +132,7 @@ Create a new release:
 
 ```bash
 gh release create v<version> \
-  --repo baixinyue-Bsin/pi-chat \
+  --repo bsin-ai/pi-chat \
   --verify-tag \
   --title "v<version>" \
   --notes-file release-notes.md
@@ -142,14 +142,14 @@ If the release already exists and only the notes need updating:
 
 ```bash
 gh release edit v<version> \
-  --repo baixinyue-Bsin/pi-chat \
+  --repo bsin-ai/pi-chat \
   --notes-file release-notes.md
 ```
 
 You can avoid a temporary file by passing notes through stdin:
 
 ```bash
-gh release edit v<version> --repo baixinyue-Bsin/pi-chat --notes-file - <<'EOF
+gh release edit v<version> --repo bsin-ai/pi-chat --notes-file - <<'EOF
 ## 中文
 
 ...
@@ -163,7 +163,7 @@ EOF
 ## 7. Final Verification
 
 ```bash
-gh release view v<version> --repo baixinyue-Bsin/pi-chat
+gh release view v<version> --repo bsin-ai/pi-chat
 npm view pi-chat@<version> version --registry https://registry.npmjs.org/
 git status --short --branch
 git log --oneline --decorate -3

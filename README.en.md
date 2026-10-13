@@ -2,7 +2,7 @@
 
 [简体中文](./README.md)
 
-[![CI](https://github.com/baixinyue-Bsin/pi-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/baixinyue-Bsin/pi-chat/actions/workflows/ci.yml)
+[![CI](https://github.com/bsin-ai/pi-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/bsin-ai/pi-chat/actions/workflows/ci.yml)
 
 ![Pi Chat cover](./docs/assets/pi-chat-cover.png)
 
@@ -67,11 +67,11 @@ The current desktop release mainly supports **Apple Silicon** Macs, including M1
 
 ### 2. Download a DMG from GitHub Releases
 
-Open [Pi Chat GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases), then click `Pi-Chat-1.1.0-arm64.dmg` in the latest release's **Assets** section to download the Apple Silicon installer. Download only from a trusted GitHub Releases page; if the filename differs, choose the `.dmg` file actually provided by that release.
+Open [Pi Chat GitHub Releases](https://github.com/bsin-ai/pi-chat/releases), then click `Pi-Chat-1.1.0-arm64.dmg` in the latest release's **Assets** section to download the Apple Silicon installer. Download only from a trusted GitHub Releases page; if the filename differs, choose the `.dmg` file actually provided by that release.
 
-[Direct download: Pi-Chat-1.1.0-arm64.dmg](https://github.com/baixinyue-Bsin/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
+[Direct download: Pi-Chat-1.1.0-arm64.dmg](https://github.com/bsin-ai/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
 
-[![Pi Chat DMG download](./docs/assets/pi-chat-dmg.png)](https://github.com/baixinyue-Bsin/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
+[![Pi Chat DMG download](./docs/assets/pi-chat-dmg.png)](https://github.com/bsin-ai/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
 
 ### 3. Drag the app to Applications
 
@@ -86,7 +86,7 @@ The current version has not completed Apple Developer signing and notarization, 
 1. In Applications, Control-click **Pi Chat**, choose **Open**, and confirm that you want to open it.
 2. If macOS still blocks it, open **System Settings > Privacy & Security** and choose **Open Anyway** next to the Pi Chat warning.
 
-If the system warning does not match the download source, cancel and download the app again from the trusted [GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases) page.
+If the system warning does not match the download source, cancel and download the app again from the trusted [GitHub Releases](https://github.com/bsin-ai/pi-chat/releases) page.
 
 ## First Launch
 
@@ -181,7 +181,7 @@ Reinstalling the app normally does not delete existing conversations. Deleting u
 
 ### How do I update Pi Chat?
 
-The current version does not support automatic updates. Download a new DMG from [GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases) and replace the old app in Applications.
+The current version does not support automatic updates. Download a new DMG from [GitHub Releases](https://github.com/bsin-ai/pi-chat/releases) and replace the old app in Applications.
 
 ## Current Limitations
 
@@ -206,7 +206,7 @@ node --version
 Install and run:
 
 ```bash
-git clone https://github.com/baixinyue-Bsin/pi-chat.git
+git clone https://github.com/bsin-ai/pi-chat.git
 cd pi-chat
 npm ci
 npm run build

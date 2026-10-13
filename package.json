@@ -2,13 +2,13 @@
   "name": "pi-chat",
   "version": "1.1.0",
   "description": "Pi Chat local browser UI for the pi coding agent",
-  "homepage": "https://github.com/baixinyue-Bsin/pi-chat#readme",
+  "homepage": "https://github.com/bsin-ai/pi-chat#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/baixinyue-Bsin/pi-chat.git"
+    "url": "git+https://github.com/bsin-ai/pi-chat.git"
   },
   "bugs": {
-    "url": "https://github.com/baixinyue-Bsin/pi-chat/issues"
+    "url": "https://github.com/bsin-ai/pi-chat/issues"
   },
   "license": "MIT",
   "engines": {

@@ -2,7 +2,7 @@
 
 [English](./README.en.md)
 
-[![CI](https://github.com/baixinyue-Bsin/pi-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/baixinyue-Bsin/pi-chat/actions/workflows/ci.yml)
+[![CI](https://github.com/bsin-ai/pi-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/bsin-ai/pi-chat/actions/workflows/ci.yml)
 
 ![Pi Chat 产品封面](./docs/assets/pi-chat-cover.png)
 
@@ -67,11 +67,11 @@ Pi Chat 适合处理需要阅读资料、整理信息或持续推进的工作，
 
 ### 2. 从 GitHub Releases 下载 DMG
 
-打开 [Pi Chat GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases)，在最新 Release 的 **Assets** 区域点击 `Pi-Chat-1.1.0-arm64.dmg` 下载 Apple Silicon 安装包。只从可信的 GitHub Releases 页面下载；如果文件名不同，请选择 Release 中实际提供的 `.dmg` 文件。
+打开 [Pi Chat GitHub Releases](https://github.com/bsin-ai/pi-chat/releases)，在最新 Release 的 **Assets** 区域点击 `Pi-Chat-1.1.0-arm64.dmg` 下载 Apple Silicon 安装包。只从可信的 GitHub Releases 页面下载；如果文件名不同，请选择 Release 中实际提供的 `.dmg` 文件。
 
-[直接下载 Pi-Chat-1.1.0-arm64.dmg](https://github.com/baixinyue-Bsin/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
+[直接下载 Pi-Chat-1.1.0-arm64.dmg](https://github.com/bsin-ai/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
 
-[![Pi Chat DMG 下载](./docs/assets/pi-chat-dmg.png)](https://github.com/baixinyue-Bsin/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
+[![Pi Chat DMG 下载](./docs/assets/pi-chat-dmg.png)](https://github.com/bsin-ai/pi-chat/releases/download/v1.1.0/Pi-Chat-1.1.0-arm64.dmg)
 
 ### 3. 将应用拖入“应用程序”
 
@@ -86,7 +86,7 @@ Pi Chat 适合处理需要阅读资料、整理信息或持续推进的工作，
 1. 在“应用程序”中按住 Control 键点击 **Pi Chat**，选择 **打开**，再确认打开。
 2. 如果仍被拦截，打开“系统设置 > 隐私与安全性”，在 Pi Chat 的提示旁选择 **仍要打开**。
 
-如果系统提示与下载来源不一致，请取消操作，并重新从可信的 [GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases) 页面下载。
+如果系统提示与下载来源不一致，请取消操作，并重新从可信的 [GitHub Releases](https://github.com/bsin-ai/pi-chat/releases) 页面下载。
 
 ## 第一次使用
 
@@ -181,7 +181,7 @@ Pi Chat 项目使用 MIT License，应用本身不收取使用费。模型服务
 
 ### 如何更新 Pi Chat？
 
-当前版本不支持自动更新。请从 [GitHub Releases](https://github.com/baixinyue-Bsin/pi-chat/releases) 下载新的 DMG，并替换“应用程序”中的旧应用。
+当前版本不支持自动更新。请从 [GitHub Releases](https://github.com/bsin-ai/pi-chat/releases) 下载新的 DMG，并替换“应用程序”中的旧应用。
 
 ## 当前限制
 
@@ -206,7 +206,7 @@ node --version
 安装并运行：
 
 ```bash
-git clone https://github.com/baixinyue-Bsin/pi-chat.git
+git clone https://github.com/bsin-ai/pi-chat.git
 cd pi-chat
 npm ci
 npm run build

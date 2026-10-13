@@ -24,5 +24,5 @@ export function isNewerStableVersion(candidate: string, current: string): boolea
 
 export function getPiChatReleaseUrl(version: string): string | null {
   if (!parseStableVersion(version)) return null;
-  return `https://github.com/baixinyue-Bsin/pi-chat/releases/tag/v${version}`;
+  return `https://github.com/bsin-ai/pi-chat/releases/tag/v${version}`;
 }
