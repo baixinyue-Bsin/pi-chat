@@ -26,9 +26,7 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npx tsc --noEmit
-      # The test suite uses process-wide runtime/env fixtures. Keep CI deterministic
-      # across runner CPU counts instead of allowing files to race each other.
-      - run: npm test -- --test-concurrency=1
+      - run: npm test
 
   e2e:
     runs-on: ubuntu-latest
