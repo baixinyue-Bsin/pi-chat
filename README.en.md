@@ -235,13 +235,16 @@ For advanced environment variables, HTTP proxy settings, remote access and HTTPS
 
 ## Project origin and maintenance scope
 
-Pi Chat is a customized local desktop application built on the open-source foundation of Pi Web. While the repository retains the upstream code and Git history, this project focuses on productizing and maintaining the following areas:
+Pi Chat is built on the open-source foundation of Pi Web and has been productized for non-technical users. The project retains Pi Web's underlying agent capabilities and engineering foundation, but it is not intended to be a simple visual copy. Its focus is to reorganize a technically oriented tool into a local AI workspace that is easier to understand, install, and use.
 
-- Electron desktop packaging and Apple Silicon macOS releases.
-- Integration of local sessions, project management, file preview, model configuration, Skills, and Plugins.
-- macOS installation compatibility, release documentation, testing, and ongoing iteration.
+The productization work focuses on:
 
-The Contributors count shown on this repository includes contributors from the upstream Pi Web Git history. Those contributors belong to the upstream project and do not represent a team of the same size currently maintaining Pi Chat. We thank the upstream project and its contributors for the open-source foundation.
+- **Reworking the product experience**: redesigning the overall interface, information architecture, and interaction flows to reduce the learning curve for concepts such as agents, models, projects, and sessions.
+- **Connecting the complete user journey**: organizing first-run setup, model configuration, local sessions, project management, file preview, Skills, and Plugins into a coherent workflow.
+- **Delivering a desktop application**: packaging the product with Electron, publishing Apple Silicon macOS installers, and providing installation and first-launch guidance.
+- **Maintaining product quality**: handling macOS compatibility, release documentation, testing, and ongoing iteration so users can experience Pi Chat from download and installation through its core workflows.
+
+Because the repository retains Pi Web's Git history, the GitHub Contributors list includes contributors from the upstream project. This list reflects the history of the codebase and does not represent the current maintenance team size of Pi Chat. We thank Pi Web and its contributors for the open-source foundation.
 
 ## License
 
